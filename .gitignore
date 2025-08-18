@@ -1,0 +1,94 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Production builds  
+/build
+/.next/
+/out/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment variables (CRITICAL - Never commit these!)
+.env
+.env*.local
+.env.production
+.env.staging
+.env.secure
+.env.backup
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+site_builder.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Security sensitive files
+deploy-package/
+secrets/
+keys/
+certificates/
+*.pem
+*.key
+*.crt
+
+# Digital Ocean & Deployment
+do-token.txt
+deployment-keys/
+server-config/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Coverage and test reports
+coverage/
+.nyc_output
+.coverage
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Documentation build
+docs/build/
+
+# Backup files
+*.backup
+*.bak
+
+# Local development
+.local/
+local-config/
+
+# Don't commit deploy packages
+deploy-*.tar.gz
