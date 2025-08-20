@@ -43,14 +43,7 @@ RUN mkdir -p data uploads logs && \
 # Install wget for health checks
 RUN apk add --no-cache wget
 
-USER nextjs
-
-EXPOSE 3000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
-
-# Create a simple database initialization and startup script
+# Create a simple database initialization and startup script BEFORE switching users
 RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo 'echo "🚀 Starting SaaS Application..."' >> entrypoint.sh && \
     echo 'echo "🌐 Domain: $DOMAIN"' >> entrypoint.sh && \
@@ -65,6 +58,14 @@ RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo 'echo "🗄️  Database: /app/data/production.db"' >> entrypoint.sh && \
     echo 'echo "🚀 Starting Node.js application..."' >> entrypoint.sh && \
     echo 'exec node server.js' >> entrypoint.sh && \
-    chmod +x entrypoint.sh
+    chmod +x entrypoint.sh && \
+    chown nextjs:nodejs entrypoint.sh
+
+USER nextjs
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
 CMD ["./entrypoint.sh"]
