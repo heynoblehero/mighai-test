@@ -92,3 +92,8 @@ local-config/
 
 # Don't commit deploy packages
 deploy-*.tar.gz
+
+# CRITICAL: Never commit configuration with secrets
+ai-settings.json
+deployment-config.json
+fresh-deploy.sh
