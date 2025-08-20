@@ -1,0 +1,50 @@
+{
+  "name": "nextjs-site-builder",
+  "version": "1.0.0",
+  "description": "Next.js Site Builder with Admin Panel",
+  "main": "server.js",
+  "scripts": {
+    "dev": "nodemon server.js",
+    "build": "next build",
+    "start": "node server.js",
+    "setup": "node setup.js",
+    "deploy": "node portable-deploy.js",
+    "deploy:config": "node deploy-questionnaire.js",
+    "deploy:run": "node deploy.js",
+    "deploy:cleanup": "node cleanup.js"
+  },
+  "dependencies": {
+    "@lemonsqueezy/lemonsqueezy.js": "^3.3.1",
+    "axios": "^1.11.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.2.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^4.19.2",
+    "express-session": "^1.17.3",
+    "form-data": "^4.0.4",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.539.0",
+    "multer": "^2.0.2",
+    "next": "^14.0.0",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pg": "^8.16.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^3.1.2",
+    "resend": "^6.0.1",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "autoprefixer": "^10.4.16",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.0"
+  }
+}

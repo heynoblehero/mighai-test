@@ -1,0 +1,46 @@
+{
+  "projectName": "mighai",
+  "doToken": "YOUR_DO_TOKEN_HERE",
+  "region": "nyc1",
+  "dropletSize": "s-2vcpu-4gb",
+  "image": "ubuntu-22-04-x64",
+  
+  "domain": "yourdomain.com",
+  "enableSSL": true,
+  "enableWWW": true,
+  
+  "adminEmail": "admin@yourdomain.com",
+  "adminPassword": "secure-admin-password-123",
+  
+  "jwtSecret": "your-super-secure-jwt-secret-here-64-chars-minimum-entropy",
+  "jwtRefreshSecret": "your-super-secure-refresh-secret-here-64-chars-minimum",
+  "sessionSecret": "your-super-secure-session-secret-here-64-chars-minimum",
+  
+  "databaseType": "local",
+  "dbName": "mighai_prod",
+  "dbUser": "mighai_user",
+  "dbPassword": "secure-db-password-123",
+  
+  "enableBackups": true,
+  "enableMonitoring": true,
+  "enableFirewall": true,
+  
+  "smtpHost": "smtp.resend.com",
+  "smtpPort": 587,
+  "smtpUser": "resend",
+  "smtpPassword": "your-resend-api-key",
+  "smtpFrom": "noreply@yourdomain.com",
+  
+  "lemonSqueezyApiKey": "your-lemon-squeezy-api-key",
+  "lemonSqueezyStoreId": "your-store-id",
+  "lemonSqueezyWebhookSecret": "your-webhook-secret",
+  
+  "sshKeyPath": "~/.ssh/id_rsa.pub",
+  
+  "nginxConfig": {
+    "serverName": "yourdomain.com",
+    "sslEmail": "admin@yourdomain.com",
+    "enableRedirects": true,
+    "securityHeaders": true
+  }
+}
