@@ -600,5 +600,189 @@
       "canEditBehavior": true,
       "protectedElements": ["chat-toggle", "chat-window"]
     }
+  },
+  "customer-connections": {
+    "name": "OAuth Connections Page",
+    "description": "OAuth account connections management for subscribers",
+    "layout_type": "customer_layout",
+    "content_area": "connections_content",
+    "required_elements": [
+      {
+        "type": "component",
+        "id": "connectionsHeader",
+        "required": true,
+        "description": "Page header with title and description",
+        "protection_level": "medium"
+      },
+      {
+        "type": "component",
+        "id": "connectedAccountsList",
+        "required": true,
+        "description": "Grid of connected OAuth accounts",
+        "protection_level": "high"
+      },
+      {
+        "type": "component",
+        "id": "availableServicesList",
+        "required": true,
+        "description": "Grid of available OAuth services to connect",
+        "protection_level": "high"
+      },
+      {
+        "type": "button",
+        "id": "connectButtons",
+        "action": "handleConnect",
+        "required": true,
+        "description": "Connect account buttons for each service",
+        "protection_level": "high"
+      },
+      {
+        "type": "button", 
+        "id": "disconnectButtons",
+        "action": "handleDisconnect",
+        "required": true,
+        "description": "Disconnect account buttons",
+        "protection_level": "high"
+      }
+    ],
+    "required_functionality": [
+      {
+        "name": "fetchConnections",
+        "description": "Fetch user's OAuth connections",
+        "api_endpoint": "/api/oauth-connections",
+        "method": "GET",
+        "required": true
+      },
+      {
+        "name": "fetchAvailableServices",
+        "description": "Fetch available OAuth services",
+        "api_endpoint": "/api/oauth-services/available",
+        "method": "GET", 
+        "required": true
+      },
+      {
+        "name": "handleConnect",
+        "description": "Initiate OAuth connection flow",
+        "api_endpoint": "/api/oauth/auth/[service_id]",
+        "method": "GET",
+        "required": true
+      },
+      {
+        "name": "handleDisconnect",
+        "description": "Remove OAuth connection",
+        "api_endpoint": "/api/oauth-connections/[connection_id]",
+        "method": "DELETE",
+        "required": true
+      },
+      {
+        "name": "handleRefreshToken",
+        "description": "Refresh expired OAuth tokens",
+        "api_endpoint": "/api/oauth/refresh/[connection_id]",
+        "method": "POST",
+        "required": true
+      }
+    ]
+  },
+  "customer-ai-services": {
+    "name": "AI Services Page",
+    "description": "AI API services connection management for subscribers",
+    "layout_type": "customer_layout",
+    "content_area": "ai_services_content",
+    "required_elements": [
+      {
+        "type": "component",
+        "id": "aiServicesHeader",
+        "required": true,
+        "description": "Page header with title and description",
+        "protection_level": "medium"
+      },
+      {
+        "type": "component",
+        "id": "connectedServicesList",
+        "required": true,
+        "description": "Grid of connected AI services",
+        "protection_level": "high"
+      },
+      {
+        "type": "component",
+        "id": "availableAIServicesList",
+        "required": true,
+        "description": "Grid of available AI services to connect",
+        "protection_level": "high"
+      },
+      {
+        "type": "form",
+        "id": "apiKeyForm",
+        "action": "handleConnect",
+        "conditional": "show_connect_form",
+        "required": true,
+        "description": "API key input form for connecting services"
+      },
+      {
+        "type": "input",
+        "id": "apiKey",
+        "name": "api_key",
+        "input_type": "password",
+        "conditional": "show_connect_form",
+        "required": true,
+        "description": "API key input field",
+        "protection_level": "high"
+      },
+      {
+        "type": "button",
+        "id": "connectButtons",
+        "action": "handleConnect",
+        "required": true,
+        "description": "Connect service buttons",
+        "protection_level": "high"
+      },
+      {
+        "type": "button",
+        "id": "disconnectButtons", 
+        "action": "handleDisconnect",
+        "required": true,
+        "description": "Disconnect service buttons",
+        "protection_level": "high"
+      }
+    ],
+    "required_functionality": [
+      {
+        "name": "fetchAIConnections",
+        "description": "Fetch user's AI service connections",
+        "api_endpoint": "/api/ai-connections",
+        "method": "GET",
+        "required": true
+      },
+      {
+        "name": "fetchAvailableAIServices",
+        "description": "Fetch available AI services",
+        "api_endpoint": "/api/ai-services/available",
+        "method": "GET",
+        "required": true
+      },
+      {
+        "name": "handleConnect",
+        "description": "Connect AI service with API key",
+        "api_endpoint": "/api/ai-connections",
+        "method": "POST",
+        "required_fields": ["ai_service_id", "api_key"],
+        "required": true
+      },
+      {
+        "name": "handleDisconnect",
+        "description": "Remove AI service connection",
+        "api_endpoint": "/api/ai-connections/[connection_id]",
+        "method": "DELETE",
+        "required": true
+      },
+      {
+        "name": "handleUpdateApiKey",
+        "description": "Update API key for existing connection",
+        "api_endpoint": "/api/ai-connections/[connection_id]",
+        "method": "PUT",
+        "required_fields": ["api_key"],
+        "required": true
+      }
+    ]
   }
 }

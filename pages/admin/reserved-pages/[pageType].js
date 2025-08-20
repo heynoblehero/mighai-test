@@ -28,7 +28,11 @@ export default function ReservedPageCustomizer() {
     'customer-dashboard': 'Customer Dashboard',
     'customer-profile': 'Customer Profile Page',
     'customer-billing': 'Billing & Upgrade Page',
-    'password-reset': 'Password Reset Page'
+    'password-reset': 'Password Reset Page',
+    'customer-layout-sidebar': 'Customer Layout - Sidebar',
+    'customer-layout-chat': 'Customer Layout - Chat',
+    'customer-connections': 'OAuth Connections Page',
+    'customer-ai-services': 'AI Services Page'
   };
 
   useEffect(() => {

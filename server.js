@@ -332,6 +332,162 @@ db.serialize(() => {
     }
   });
 
+  // Add enabled_for_subscribers column to oauth_services
+  db.run(`ALTER TABLE oauth_services ADD COLUMN enabled_for_subscribers BOOLEAN DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding enabled_for_subscribers column:', err.message);
+    }
+  });
+
+  // Integration Categories table
+  db.run(`CREATE TABLE IF NOT EXISTS integration_categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    description TEXT,
+    icon TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // AI API Services table
+  db.run(`CREATE TABLE IF NOT EXISTS ai_api_services (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    description TEXT,
+    api_endpoint TEXT,
+    api_key_required BOOLEAN DEFAULT 1,
+    api_key_encrypted TEXT,
+    model_options TEXT,
+    request_format TEXT,
+    response_format TEXT,
+    category_id INTEGER,
+    icon_url TEXT,
+    documentation_url TEXT,
+    is_active BOOLEAN DEFAULT 1,
+    enabled_for_subscribers BOOLEAN DEFAULT 0,
+    created_by INTEGER,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES integration_categories (id),
+    FOREIGN KEY (created_by) REFERENCES users (id)
+  )`);
+
+  // User AI API Connections table
+  db.run(`CREATE TABLE IF NOT EXISTS user_ai_connections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    ai_service_id INTEGER NOT NULL,
+    api_key_encrypted TEXT NOT NULL,
+    model_preferences TEXT,
+    usage_stats TEXT,
+    is_active BOOLEAN DEFAULT 1,
+    connected_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users (id),
+    FOREIGN KEY (ai_service_id) REFERENCES ai_api_services (id),
+    UNIQUE(user_id, ai_service_id)
+  )`);
+
+  // Integration Settings table for admin configurations
+  db.run(`CREATE TABLE IF NOT EXISTS integration_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    show_integrations_page BOOLEAN DEFAULT 0,
+    require_admin_approval BOOLEAN DEFAULT 0,
+    auto_enable_new_services BOOLEAN DEFAULT 0,
+    integration_categories_enabled TEXT DEFAULT '[]',
+    updated_by INTEGER,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (updated_by) REFERENCES users (id)
+  )`);
+
+  // Insert default integration categories
+  const defaultCategories = [
+    { name: 'ai', display_name: 'AI & Machine Learning', description: 'AI APIs and machine learning services', icon: '🤖', sort_order: 1 },
+    { name: 'social', display_name: 'Social Media', description: 'Social media platforms and marketing', icon: '📱', sort_order: 2 },
+    { name: 'productivity', display_name: 'Productivity', description: 'Productivity and collaboration tools', icon: '⚡', sort_order: 3 },
+    { name: 'development', display_name: 'Development', description: 'Development tools and code repositories', icon: '💻', sort_order: 4 },
+    { name: 'ecommerce', display_name: 'E-commerce', description: 'E-commerce and payment platforms', icon: '🛒', sort_order: 5 },
+    { name: 'marketing', display_name: 'Marketing', description: 'Email marketing and CRM platforms', icon: '📧', sort_order: 6 },
+    { name: 'communication', display_name: 'Communication', description: 'Communication and messaging platforms', icon: '💬', sort_order: 7 },
+    { name: 'cloud', display_name: 'Cloud Storage', description: 'Cloud storage and file sharing', icon: '☁️', sort_order: 8 }
+  ];
+
+  defaultCategories.forEach(category => {
+    db.run(`INSERT OR IGNORE INTO integration_categories (name, display_name, description, icon, sort_order) 
+            VALUES (?, ?, ?, ?, ?)`,
+      [category.name, category.display_name, category.description, category.icon, category.sort_order]);
+  });
+
+  // Insert default AI API services
+  const defaultAIServices = [
+    {
+      name: 'openai',
+      display_name: 'OpenAI',
+      description: 'GPT models, DALL-E, Whisper, and more',
+      api_endpoint: 'https://api.openai.com/v1',
+      model_options: JSON.stringify(['gpt-4', 'gpt-3.5-turbo', 'dall-e-3', 'whisper-1']),
+      icon_url: 'https://openai.com/favicon.ico',
+      documentation_url: 'https://platform.openai.com/docs'
+    },
+    {
+      name: 'anthropic',
+      display_name: 'Anthropic Claude',
+      description: 'Claude AI models for conversations and analysis',
+      api_endpoint: 'https://api.anthropic.com/v1',
+      model_options: JSON.stringify(['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku']),
+      icon_url: 'https://anthropic.com/favicon.ico',
+      documentation_url: 'https://docs.anthropic.com'
+    },
+    {
+      name: 'google_ai',
+      display_name: 'Google AI',
+      description: 'Gemini models and Google AI services',
+      api_endpoint: 'https://generativelanguage.googleapis.com/v1',
+      model_options: JSON.stringify(['gemini-pro', 'gemini-pro-vision']),
+      icon_url: 'https://ai.google/favicon.ico',
+      documentation_url: 'https://ai.google.dev'
+    },
+    {
+      name: 'cohere',
+      display_name: 'Cohere',
+      description: 'Natural language processing and generation',
+      api_endpoint: 'https://api.cohere.ai/v1',
+      model_options: JSON.stringify(['command', 'command-light', 'embed']),
+      icon_url: 'https://cohere.com/favicon.ico',
+      documentation_url: 'https://docs.cohere.com'
+    },
+    {
+      name: 'huggingface',
+      display_name: 'Hugging Face',
+      description: 'Open-source ML models and inference',
+      api_endpoint: 'https://api-inference.huggingface.co',
+      model_options: JSON.stringify(['text-generation', 'text-classification', 'translation']),
+      icon_url: 'https://huggingface.co/favicon.ico',
+      documentation_url: 'https://huggingface.co/docs'
+    }
+  ];
+
+  // Get AI category ID and insert services
+  db.get(`SELECT id FROM integration_categories WHERE name = 'ai'`, (err, aiCategory) => {
+    if (!err && aiCategory) {
+      defaultAIServices.forEach(service => {
+        db.run(`INSERT OR IGNORE INTO ai_api_services (
+          name, display_name, description, api_endpoint, model_options, 
+          category_id, icon_url, documentation_url, request_format, response_format
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'json', 'json')`,
+          [service.name, service.display_name, service.description, service.api_endpoint,
+           service.model_options, aiCategory.id, service.icon_url, service.documentation_url]);
+      });
+    }
+  });
+
+  // Initialize integration settings
+  db.run(`INSERT OR IGNORE INTO integration_settings (id, show_integrations_page, require_admin_approval, auto_enable_new_services, integration_categories_enabled)
+          VALUES (1, 0, 0, 0, '[]')`);
+
   // Customer tasks table
   db.run(`CREATE TABLE IF NOT EXISTS customer_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2158,7 +2314,7 @@ nextApp.prepare().then(() => {
     });
   });
 
-  // Get available OAuth services for connection (for subscribers)
+  // Get available OAuth services for connection (for subscribers) - only admin-enabled
   server.get('/api/oauth-services/available', requireSubscriberAuth, (req, res) => {
     const userId = req.user.id;
     
@@ -2168,11 +2324,132 @@ nextApp.prepare().then(() => {
       CASE WHEN uoc.id IS NOT NULL THEN 1 ELSE 0 END as is_connected
     FROM oauth_services os
     LEFT JOIN user_oauth_connections uoc ON os.id = uoc.oauth_service_id AND uoc.user_id = ? AND uoc.is_active = 1
-    WHERE os.is_active = 1
+    WHERE os.is_active = 1 AND os.enabled_for_subscribers = 1
     ORDER BY os.category, os.display_name`, [userId], (err, services) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(services);
     });
+  });
+
+  // Get available AI services for connection (for subscribers) - only admin-enabled
+  server.get('/api/ai-services/available', requireSubscriberAuth, (req, res) => {
+    const userId = req.user.id;
+    
+    db.all(`SELECT 
+      ai.id, ai.name, ai.display_name, ai.description, ai.icon_url, 
+      ai.model_options, ai.documentation_url,
+      ic.name as category, ic.display_name as category_display_name,
+      CASE WHEN uai.id IS NOT NULL THEN 1 ELSE 0 END as is_connected
+    FROM ai_api_services ai
+    LEFT JOIN integration_categories ic ON ai.category_id = ic.id
+    LEFT JOIN user_ai_connections uai ON ai.id = uai.ai_service_id AND uai.user_id = ? AND uai.is_active = 1
+    WHERE ai.is_active = 1 AND ai.enabled_for_subscribers = 1
+    ORDER BY ic.sort_order, ai.display_name`, [userId], (err, services) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(services);
+    });
+  });
+
+  // Connect to AI service (for subscribers)
+  server.post('/api/ai-connections', requireSubscriberAuth, (req, res) => {
+    const { ai_service_id, api_key, model_preferences } = req.body;
+    const userId = req.user.id;
+
+    if (!ai_service_id || !api_key) {
+      return res.status(400).json({ error: 'AI service ID and API key are required' });
+    }
+
+    // Check if service is enabled for subscribers
+    db.get('SELECT * FROM ai_api_services WHERE id = ? AND is_active = 1 AND enabled_for_subscribers = 1', 
+      [ai_service_id], (err, service) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!service) return res.status(404).json({ error: 'AI service not found or not available' });
+
+        const encryptedApiKey = encryptToken(api_key);
+
+        db.run(`INSERT OR REPLACE INTO user_ai_connections (
+          user_id, ai_service_id, api_key_encrypted, model_preferences, 
+          is_active, connected_at
+        ) VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)`,
+          [userId, ai_service_id, encryptedApiKey, JSON.stringify(model_preferences || {})],
+          function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Successfully connected to AI service' });
+          }
+        );
+      }
+    );
+  });
+
+  // Get user's AI connections
+  server.get('/api/ai-connections', requireSubscriberAuth, (req, res) => {
+    const userId = req.user.id;
+    
+    db.all(`SELECT 
+      uai.id, uai.ai_service_id, uai.model_preferences, uai.usage_stats,
+      uai.is_active, uai.connected_at, uai.last_used_at,
+      ai.name, ai.display_name, ai.description, ai.icon_url, ai.model_options,
+      ic.display_name as category
+    FROM user_ai_connections uai
+    JOIN ai_api_services ai ON uai.ai_service_id = ai.id
+    LEFT JOIN integration_categories ic ON ai.category_id = ic.id
+    WHERE uai.user_id = ? AND uai.is_active = 1
+    ORDER BY uai.connected_at DESC`, [userId], (err, connections) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(connections);
+    });
+  });
+
+  // Disconnect from AI service
+  server.delete('/api/ai-connections/:id', requireSubscriberAuth, (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    db.run('UPDATE user_ai_connections SET is_active = 0 WHERE id = ? AND user_id = ?', 
+      [id, userId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'AI connection not found' });
+        }
+        res.json({ message: 'AI connection disconnected successfully' });
+      }
+    );
+  });
+
+  // Check if integrations are available for current user
+  server.get('/api/integrations/available', requireSubscriberAuth, (req, res) => {
+    const queries = [
+      new Promise((resolve, reject) => {
+        db.get('SELECT show_integrations_page FROM integration_settings WHERE id = 1', 
+          (err, result) => err ? reject(err) : resolve(result?.show_integrations_page || false));
+      }),
+      new Promise((resolve, reject) => {
+        db.get('SELECT COUNT(*) as count FROM oauth_services WHERE is_active = 1 AND enabled_for_subscribers = 1', 
+          (err, result) => err ? reject(err) : resolve(result.count));
+      }),
+      new Promise((resolve, reject) => {
+        db.get('SELECT COUNT(*) as count FROM ai_api_services WHERE is_active = 1 AND enabled_for_subscribers = 1', 
+          (err, result) => err ? reject(err) : resolve(result.count));
+      })
+    ];
+
+    Promise.all(queries)
+      .then(results => {
+        const [integrationsEnabled, oauthCount, aiCount] = results;
+        const totalServices = oauthCount + aiCount;
+        
+        res.json({
+          integrations_available: integrationsEnabled && totalServices > 0,
+          integrations_page_enabled: integrationsEnabled,
+          total_services: totalServices,
+          oauth_services: oauthCount,
+          ai_services: aiCount
+        });
+      })
+      .catch(err => {
+        console.error('Integration availability check error:', err);
+        res.status(500).json({ error: 'Failed to check integration availability' });
+      });
   });
 
   // Disconnect OAuth connection
@@ -2475,6 +2752,247 @@ nextApp.prepare().then(() => {
         }
       }
     );
+  });
+
+  // Integration Management API routes (Admin only)
+
+  // Get integration settings
+  server.get('/api/admin/integration-settings', requireAuth, (req, res) => {
+    db.get('SELECT * FROM integration_settings WHERE id = 1', (err, settings) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(settings || { show_integrations_page: false, require_admin_approval: false, auto_enable_new_services: false, integration_categories_enabled: '[]' });
+    });
+  });
+
+  // Update integration settings
+  server.post('/api/admin/integration-settings', requireAuth, (req, res) => {
+    const { show_integrations_page, require_admin_approval, auto_enable_new_services, integration_categories_enabled } = req.body;
+    
+    db.run(`INSERT OR REPLACE INTO integration_settings (id, show_integrations_page, require_admin_approval, auto_enable_new_services, integration_categories_enabled, updated_by, updated_at)
+            VALUES (1, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [show_integrations_page, require_admin_approval, auto_enable_new_services, JSON.stringify(integration_categories_enabled || []), req.user.id],
+      function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Integration settings updated successfully' });
+      }
+    );
+  });
+
+  // Get all integration categories
+  server.get('/api/admin/integration-categories', requireAuth, (req, res) => {
+    db.all('SELECT * FROM integration_categories ORDER BY sort_order, display_name', (err, categories) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(categories);
+    });
+  });
+
+  // Get AI API services
+  server.get('/api/admin/ai-services', requireAuth, (req, res) => {
+    db.all(`SELECT ai.*, ic.display_name as category_name 
+            FROM ai_api_services ai 
+            LEFT JOIN integration_categories ic ON ai.category_id = ic.id 
+            ORDER BY ai.display_name`, (err, services) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      // Don't expose API keys in the response
+      const sanitizedServices = services.map(service => ({
+        ...service,
+        api_key_encrypted: service.api_key_encrypted ? '***masked***' : null
+      }));
+      
+      res.json(sanitizedServices);
+    });
+  });
+
+  // Create AI API service
+  server.post('/api/admin/ai-services', requireAuth, (req, res) => {
+    const { 
+      name, display_name, description, api_endpoint, api_key, 
+      model_options, category_id, icon_url, documentation_url,
+      is_active, enabled_for_subscribers 
+    } = req.body;
+
+    if (!name || !display_name || !api_endpoint) {
+      return res.status(400).json({ error: 'Name, display name, and API endpoint are required' });
+    }
+
+    const encryptedApiKey = api_key ? encryptToken(api_key) : null;
+
+    db.run(`INSERT INTO ai_api_services (
+      name, display_name, description, api_endpoint, api_key_encrypted, 
+      model_options, category_id, icon_url, documentation_url, 
+      is_active, enabled_for_subscribers, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, display_name, description, api_endpoint, encryptedApiKey,
+       JSON.stringify(model_options || []), category_id, icon_url, 
+       documentation_url, is_active !== false, enabled_for_subscribers || false, req.user.id],
+      function(err) {
+        if (err) {
+          if (err.message.includes('UNIQUE constraint')) {
+            return res.status(400).json({ error: 'AI service with this name already exists' });
+          }
+          return res.status(500).json({ error: err.message });
+        }
+        res.json({ message: 'AI service created successfully', id: this.lastID });
+      }
+    );
+  });
+
+  // Update AI API service
+  server.put('/api/admin/ai-services/:id', requireAuth, (req, res) => {
+    const { id } = req.params;
+    const { 
+      name, display_name, description, api_endpoint, api_key, 
+      model_options, category_id, icon_url, documentation_url,
+      is_active, enabled_for_subscribers 
+    } = req.body;
+
+    if (!name || !display_name || !api_endpoint) {
+      return res.status(400).json({ error: 'Name, display name, and API endpoint are required' });
+    }
+
+    let updateFields = [
+      'name = ?', 'display_name = ?', 'description = ?', 'api_endpoint = ?',
+      'model_options = ?', 'category_id = ?', 'icon_url = ?', 'documentation_url = ?',
+      'is_active = ?', 'enabled_for_subscribers = ?', 'updated_at = CURRENT_TIMESTAMP'
+    ];
+    let updateValues = [
+      name, display_name, description, api_endpoint, JSON.stringify(model_options || []),
+      category_id, icon_url, documentation_url, is_active !== false, enabled_for_subscribers || false
+    ];
+
+    // Only update API key if provided (not masked)
+    if (api_key && api_key !== '***masked***') {
+      updateFields.splice(4, 0, 'api_key_encrypted = ?');
+      updateValues.splice(4, 0, encryptToken(api_key));
+    }
+
+    updateValues.push(id);
+
+    db.run(`UPDATE ai_api_services SET ${updateFields.join(', ')} WHERE id = ?`,
+      updateValues,
+      function(err) {
+        if (err) {
+          if (err.message.includes('UNIQUE constraint')) {
+            return res.status(400).json({ error: 'AI service with this name already exists' });
+          }
+          return res.status(500).json({ error: err.message });
+        }
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'AI service not found' });
+        }
+        res.json({ message: 'AI service updated successfully' });
+      }
+    );
+  });
+
+  // Delete AI API service
+  server.delete('/api/admin/ai-services/:id', requireAuth, (req, res) => {
+    const { id } = req.params;
+    
+    // Check if any users have connections to this service
+    db.get('SELECT COUNT(*) as count FROM user_ai_connections WHERE ai_service_id = ?', [id], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      if (result.count > 0) {
+        return res.status(400).json({ error: 'Cannot delete AI service with active user connections' });
+      }
+      
+      db.run('DELETE FROM ai_api_services WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) {
+          return res.status(404).json({ error: 'AI service not found' });
+        }
+        res.json({ message: 'AI service deleted successfully' });
+      });
+    });
+  });
+
+  // Bulk enable/disable OAuth services for subscribers
+  server.post('/api/admin/oauth-services/bulk-enable', requireAuth, (req, res) => {
+    const { service_ids, enabled_for_subscribers } = req.body;
+    
+    if (!Array.isArray(service_ids) || service_ids.length === 0) {
+      return res.status(400).json({ error: 'Service IDs array is required' });
+    }
+
+    const placeholders = service_ids.map(() => '?').join(',');
+    const updateValues = [enabled_for_subscribers ? 1 : 0, ...service_ids];
+
+    db.run(`UPDATE oauth_services SET enabled_for_subscribers = ?, updated_at = CURRENT_TIMESTAMP 
+            WHERE id IN (${placeholders})`,
+      updateValues,
+      function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ 
+          message: `${this.changes} OAuth services ${enabled_for_subscribers ? 'enabled' : 'disabled'} for subscribers`,
+          updated_count: this.changes 
+        });
+      }
+    );
+  });
+
+  // Bulk enable/disable AI services for subscribers
+  server.post('/api/admin/ai-services/bulk-enable', requireAuth, (req, res) => {
+    const { service_ids, enabled_for_subscribers } = req.body;
+    
+    if (!Array.isArray(service_ids) || service_ids.length === 0) {
+      return res.status(400).json({ error: 'Service IDs array is required' });
+    }
+
+    const placeholders = service_ids.map(() => '?').join(',');
+    const updateValues = [enabled_for_subscribers ? 1 : 0, ...service_ids];
+
+    db.run(`UPDATE ai_api_services SET enabled_for_subscribers = ?, updated_at = CURRENT_TIMESTAMP 
+            WHERE id IN (${placeholders})`,
+      updateValues,
+      function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ 
+          message: `${this.changes} AI services ${enabled_for_subscribers ? 'enabled' : 'disabled'} for subscribers`,
+          updated_count: this.changes 
+        });
+      }
+    );
+  });
+
+  // Get integration overview for admin dashboard
+  server.get('/api/admin/integrations-overview', requireAuth, (req, res) => {
+    const queries = [
+      new Promise((resolve, reject) => {
+        db.get('SELECT COUNT(*) as total_oauth, SUM(enabled_for_subscribers) as enabled_oauth FROM oauth_services WHERE is_active = 1', 
+          (err, result) => err ? reject(err) : resolve({ oauth: result }));
+      }),
+      new Promise((resolve, reject) => {
+        db.get('SELECT COUNT(*) as total_ai, SUM(enabled_for_subscribers) as enabled_ai FROM ai_api_services WHERE is_active = 1', 
+          (err, result) => err ? reject(err) : resolve({ ai: result }));
+      }),
+      new Promise((resolve, reject) => {
+        db.get('SELECT show_integrations_page FROM integration_settings WHERE id = 1', 
+          (err, result) => err ? reject(err) : resolve({ settings: result }));
+      }),
+      new Promise((resolve, reject) => {
+        db.get(`SELECT COUNT(DISTINCT user_id) as connected_users 
+                FROM (SELECT user_id FROM user_oauth_connections WHERE is_active = 1 
+                      UNION SELECT user_id FROM user_ai_connections WHERE is_active = 1)`, 
+          (err, result) => err ? reject(err) : resolve({ users: result }));
+      })
+    ];
+
+    Promise.all(queries)
+      .then(results => {
+        const overview = {
+          oauth_services: results[0].oauth,
+          ai_services: results[1].ai,
+          integrations_page_enabled: results[2].settings?.show_integrations_page || false,
+          users_with_connections: results[3].users.connected_users || 0
+        };
+        res.json(overview);
+      })
+      .catch(err => {
+        console.error('Integration overview error:', err);
+        res.status(500).json({ error: 'Failed to fetch integration overview' });
+      });
   });
 
   // Admin Error Monitoring Routes

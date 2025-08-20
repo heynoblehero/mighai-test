@@ -174,7 +174,7 @@ export default function OAuthConnections() {
 
   return (
     <SubscriberLayout title="Account Connections">
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 min-h-screen bg-slate-900">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-slate-100">Account Connections</h1>
