@@ -238,14 +238,21 @@ SMTP_FROM=
 REDIS_URL=redis://redis:6379
 EOF
 
+# Download deployment files from GitHub
+echo -e "${BLUE}📥 Downloading application files...${NC}"
+cd /tmp
+wget -q https://raw.githubusercontent.com/heynoblehero/mighai-test/main/docker-compose.prod.yml
+wget -q https://raw.githubusercontent.com/heynoblehero/mighai-test/main/nginx.prod.conf
+wget -q https://raw.githubusercontent.com/heynoblehero/mighai-test/main/Dockerfile.prod
+
 # Create docker-compose.yml with environment substitution
 echo -e "${BLUE}🐳 Creating Docker Compose configuration...${NC}"
 export DOMAIN EMAIL
 envsubst '$DOMAIN $EMAIL' < docker-compose.prod.yml > $APP_DIR/docker-compose.yml
 
 # Copy nginx configuration
-cp nginx.prod.conf $APP_DIR/nginx.conf
 envsubst '$DOMAIN' < nginx.prod.conf > $APP_DIR/nginx.conf
+cp Dockerfile.prod $APP_DIR/
 
 # Create startup script
 cat > $APP_DIR/start.sh << 'EOF'
@@ -258,8 +265,10 @@ echo "📧 Email: $ADMIN_EMAIL"
 
 cd /opt/saas-app
 
-# Load environment
-export $(cat .env | xargs)
+# Load environment (skip comments and empty lines)
+set -a
+source .env
+set +a
 
 # Start services
 docker-compose down --remove-orphans 2>/dev/null || true
