@@ -234,8 +234,8 @@ ADMIN_EMAIL=$EMAIL
 SESSION_SECRET=$(openssl rand -hex 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
 
-# Database - Use simple relative path that works with most SQLite libraries
-DATABASE_URL=./data/production.db
+# Database - Use the hardcoded path the app expects
+DATABASE_URL=./site_builder.db
 
 # Optional API Keys (set these manually)
 OPENAI_API_KEY=
@@ -279,7 +279,7 @@ services:
       - PORT=3000
       - DOMAIN=$DOMAIN
       - ADMIN_EMAIL=$EMAIL
-      - DATABASE_URL=./data/production.db
+      - DATABASE_URL=./site_builder.db
       - SESSION_SECRET=$SESSION_SECRET
       - ENCRYPTION_KEY=$ENCRYPTION_KEY
     volumes:
