@@ -279,6 +279,9 @@ services:
       - PORT=3000
       - DOMAIN=$DOMAIN
       - ADMIN_EMAIL=$EMAIL
+      - DATABASE_URL=./data/production.db
+      - SESSION_SECRET=$SESSION_SECRET
+      - ENCRYPTION_KEY=$ENCRYPTION_KEY
     volumes:
       - ./data:/app/data:rw
       - ./uploads:/app/uploads:rw
