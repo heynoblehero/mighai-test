@@ -51,11 +51,14 @@ RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo '# Set up database directory' >> entrypoint.sh && \
     echo 'mkdir -p /app/data' >> entrypoint.sh && \
     echo 'cd /app' >> entrypoint.sh && \
-    echo '# Test SQLite access' >> entrypoint.sh && \
-    echo 'echo "🔍 Testing SQLite access..."' >> entrypoint.sh && \
-    echo 'echo "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY);" | sqlite3 ./site_builder.db || echo "SQLite test failed"' >> entrypoint.sh && \
-    echo 'echo "🗄️  Database initialized: $PWD/site_builder.db"' >> entrypoint.sh && \
-    echo 'ls -la ./site_builder.db' >> entrypoint.sh && \
+    echo '# Check database file' >> entrypoint.sh && \
+    echo 'echo "🔍 Checking for database file..."' >> entrypoint.sh && \
+    echo 'if [ ! -f ./site_builder.db ]; then' >> entrypoint.sh && \
+    echo '  echo "⚠️ Database not found, creating empty one..."' >> entrypoint.sh && \
+    echo '  touch ./site_builder.db' >> entrypoint.sh && \
+    echo 'fi' >> entrypoint.sh && \
+    echo 'echo "🗄️  Database status:"' >> entrypoint.sh && \
+    echo 'ls -la ./site_builder.db || echo "Database file not found"' >> entrypoint.sh && \
     echo 'echo "DATABASE_URL: $DATABASE_URL"' >> entrypoint.sh && \
     echo 'echo "🚀 Starting Node.js application..."' >> entrypoint.sh && \
     echo 'exec node server.js' >> entrypoint.sh && \
