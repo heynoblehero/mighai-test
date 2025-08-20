@@ -48,14 +48,19 @@ RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo 'echo "🚀 Starting SaaS Application..."' >> entrypoint.sh && \
     echo 'echo "🌐 Domain: $DOMAIN"' >> entrypoint.sh && \
     echo 'echo "📧 Admin: $ADMIN_EMAIL"' >> entrypoint.sh && \
-    echo '# Ensure data directory exists' >> entrypoint.sh && \
+    echo '# Ensure data directory exists with proper permissions' >> entrypoint.sh && \
     echo 'mkdir -p /app/data' >> entrypoint.sh && \
+    echo 'chmod 777 /app/data' >> entrypoint.sh && \
     echo '# Initialize database if it does not exist' >> entrypoint.sh && \
     echo 'if [ ! -f /app/data/production.db ]; then' >> entrypoint.sh && \
     echo '  echo "📝 Initializing database..."' >> entrypoint.sh && \
     echo '  touch /app/data/production.db' >> entrypoint.sh && \
+    echo '  chmod 666 /app/data/production.db' >> entrypoint.sh && \
     echo 'fi' >> entrypoint.sh && \
+    echo '# Ensure database permissions' >> entrypoint.sh && \
+    echo 'chmod 666 /app/data/production.db 2>/dev/null || true' >> entrypoint.sh && \
     echo 'echo "🗄️  Database: /app/data/production.db"' >> entrypoint.sh && \
+    echo 'ls -la /app/data/' >> entrypoint.sh && \
     echo 'echo "🚀 Starting Node.js application..."' >> entrypoint.sh && \
     echo 'exec node server.js' >> entrypoint.sh && \
     chmod +x entrypoint.sh && \

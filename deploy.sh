@@ -234,8 +234,8 @@ ADMIN_EMAIL=$EMAIL
 SESSION_SECRET=$(openssl rand -hex 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
 
-# Database
-DATABASE_URL=sqlite:./data/production.db
+# Database - Using absolute path that matches container
+DATABASE_URL=sqlite:///app/data/production.db
 
 # Optional API Keys (set these manually)
 OPENAI_API_KEY=
@@ -610,8 +610,9 @@ echo "*/5 * * * * /opt/saas-app/health-check.sh $DOMAIN >> /opt/saas-app/logs/he
 # Set proper permissions and ensure data directory exists on host
 chown -R deploy:deploy $APP_DIR
 mkdir -p $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
+# Set more permissive permissions for database directory (SQLite needs write access to directory)
+chmod -R 777 $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
 chown -R deploy:deploy $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
-chmod -R 755 $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
 
 # Start the application
 echo -e "${BLUE}🚀 Starting application...${NC}"
