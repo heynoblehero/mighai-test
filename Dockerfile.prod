@@ -34,7 +34,11 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app ./
-RUN mkdir -p data uploads && chown -R nextjs:nodejs data uploads
+
+# Create directories with proper permissions for database and uploads
+RUN mkdir -p data uploads logs && \
+    chown -R nextjs:nodejs data uploads logs && \
+    chmod -R 755 data uploads logs
 
 # Install wget for health checks
 RUN apk add --no-cache wget
@@ -46,5 +50,21 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-# Skip the start.sh script entirely - just run node directly
-CMD ["sh", "-c", "echo '🚀 Starting SaaS Application...' && echo '🌐 Domain: $DOMAIN' && echo '📧 Admin: $ADMIN_EMAIL' && exec node server.js"]
+# Create a simple database initialization and startup script
+RUN echo '#!/bin/sh' > entrypoint.sh && \
+    echo 'echo "🚀 Starting SaaS Application..."' >> entrypoint.sh && \
+    echo 'echo "🌐 Domain: $DOMAIN"' >> entrypoint.sh && \
+    echo 'echo "📧 Admin: $ADMIN_EMAIL"' >> entrypoint.sh && \
+    echo '# Ensure data directory exists' >> entrypoint.sh && \
+    echo 'mkdir -p /app/data' >> entrypoint.sh && \
+    echo '# Initialize database if it does not exist' >> entrypoint.sh && \
+    echo 'if [ ! -f /app/data/production.db ]; then' >> entrypoint.sh && \
+    echo '  echo "📝 Initializing database..."' >> entrypoint.sh && \
+    echo '  touch /app/data/production.db' >> entrypoint.sh && \
+    echo 'fi' >> entrypoint.sh && \
+    echo 'echo "🗄️  Database: /app/data/production.db"' >> entrypoint.sh && \
+    echo 'echo "🚀 Starting Node.js application..."' >> entrypoint.sh && \
+    echo 'exec node server.js' >> entrypoint.sh && \
+    chmod +x entrypoint.sh
+
+CMD ["./entrypoint.sh"]

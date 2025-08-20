@@ -235,7 +235,7 @@ SESSION_SECRET=$(openssl rand -hex 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
 
 # Database
-DATABASE_URL=sqlite:/app/data/production.db
+DATABASE_URL=sqlite:./data/production.db
 
 # Optional API Keys (set these manually)
 OPENAI_API_KEY=
@@ -607,8 +607,11 @@ chmod +x /opt/saas-app/health-check.sh
 # Add to crontab for deploy user
 echo "*/5 * * * * /opt/saas-app/health-check.sh $DOMAIN >> /opt/saas-app/logs/health.log 2>&1" | crontab -u deploy -
 
-# Set proper permissions
+# Set proper permissions and ensure data directory exists on host
 chown -R deploy:deploy $APP_DIR
+mkdir -p $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
+chown -R deploy:deploy $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
+chmod -R 755 $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
 
 # Start the application
 echo -e "${BLUE}🚀 Starting application...${NC}"
