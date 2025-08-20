@@ -610,6 +610,14 @@ echo "*/5 * * * * /opt/saas-app/health-check.sh $DOMAIN >> /opt/saas-app/logs/he
 # Set proper permissions and ensure data directory exists on host
 chown -R deploy:deploy $APP_DIR
 mkdir -p $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
+
+# Clean any existing database files to avoid permission conflicts
+echo -e "${BLUE}🧹 Cleaning database directory for fresh start...${NC}"
+rm -f $APP_DIR/data/production.db
+rm -f $APP_DIR/data/*.json
+rm -f $APP_DIR/data/*.md
+rm -rf $APP_DIR/data/reserved-pages
+
 # Set more permissive permissions for database directory (SQLite needs write access to directory)
 chmod -R 777 $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
 chown -R deploy:deploy $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
