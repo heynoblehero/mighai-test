@@ -40,21 +40,23 @@ RUN mkdir -p data uploads logs && \
     chown -R nextjs:nodejs data uploads logs && \
     chmod -R 755 data uploads logs
 
-# Install wget for health checks
-RUN apk add --no-cache wget
+# Install wget for health checks and sqlite3 for database testing
+RUN apk add --no-cache wget sqlite
 
 # Create a simple database initialization and startup script BEFORE switching users
 RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo 'echo "🚀 Starting SaaS Application..."' >> entrypoint.sh && \
     echo 'echo "🌐 Domain: $DOMAIN"' >> entrypoint.sh && \
     echo 'echo "📧 Admin: $ADMIN_EMAIL"' >> entrypoint.sh && \
-    echo '# Clean data directory and set up fresh database' >> entrypoint.sh && \
-    echo 'rm -f /app/data/production.db' >> entrypoint.sh && \
+    echo '# Set up database directory' >> entrypoint.sh && \
     echo 'mkdir -p /app/data' >> entrypoint.sh && \
-    echo 'echo "📝 Creating fresh database..."' >> entrypoint.sh && \
-    echo 'touch /app/data/production.db' >> entrypoint.sh && \
-    echo 'echo "🗄️  Database: /app/data/production.db"' >> entrypoint.sh && \
-    echo 'ls -la /app/data/production.db' >> entrypoint.sh && \
+    echo 'cd /app' >> entrypoint.sh && \
+    echo '# Test SQLite access' >> entrypoint.sh && \
+    echo 'echo "🔍 Testing SQLite access..."' >> entrypoint.sh && \
+    echo 'echo "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY);" | sqlite3 ./data/production.db || echo "SQLite test failed"' >> entrypoint.sh && \
+    echo 'echo "🗄️  Database initialized: $PWD/data/production.db"' >> entrypoint.sh && \
+    echo 'ls -la ./data/production.db' >> entrypoint.sh && \
+    echo 'echo "DATABASE_URL: $DATABASE_URL"' >> entrypoint.sh && \
     echo 'echo "🚀 Starting Node.js application..."' >> entrypoint.sh && \
     echo 'exec node server.js' >> entrypoint.sh && \
     chmod +x entrypoint.sh && \

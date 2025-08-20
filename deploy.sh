@@ -234,8 +234,8 @@ ADMIN_EMAIL=$EMAIL
 SESSION_SECRET=$(openssl rand -hex 32)
 ENCRYPTION_KEY=$(openssl rand -hex 32)
 
-# Database - Using absolute path that matches container
-DATABASE_URL=sqlite:///app/data/production.db
+# Database - Use simple relative path that works with most SQLite libraries
+DATABASE_URL=./data/production.db
 
 # Optional API Keys (set these manually)
 OPENAI_API_KEY=
