@@ -450,8 +450,9 @@ set -a
 source .env
 set +a
 
-# Start services
+# Start services with force rebuild
 docker-compose down --remove-orphans 2>/dev/null || true
+docker-compose build --no-cache
 docker-compose up -d
 
 echo "✅ Application started successfully!"
@@ -655,6 +656,16 @@ echo "   View logs: tail -f /opt/saas-app/logs/health.log"
 echo "   Auto-check runs every 5 minutes via cron"
 echo ""
 
+# Run automatic health check after deployment
+echo -e "${BLUE}🏥 Running automatic health check...${NC}"
+sleep 10  # Give containers time to start
+
+# Run health check and show results
+/opt/saas-app/health-check.sh
+
 # Show final status
-sleep 5
+echo ""
+echo -e "${BLUE}📊 Final System Status:${NC}"
 systemctl status saas-app.service --no-pager
+echo ""
+docker ps

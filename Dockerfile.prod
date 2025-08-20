@@ -39,16 +39,6 @@ RUN mkdir -p data uploads && chown -R nextjs:nodejs data uploads
 # Install wget for health checks
 RUN apk add --no-cache wget
 
-# Create startup script with proper escaping
-RUN echo '#!/bin/sh' > start.sh && \
-    echo 'echo "🚀 Starting SaaS Application..."' >> start.sh && \
-    echo 'echo "🌐 Domain: $DOMAIN"' >> start.sh && \
-    echo 'echo "📧 Admin: $ADMIN_EMAIL"' >> start.sh && \
-    echo 'echo "🗄️  Database: $DATABASE_URL"' >> start.sh && \
-    echo 'exec node server.js' >> start.sh && \
-    chmod +x start.sh && \
-    chown nextjs:nodejs start.sh
-
 USER nextjs
 
 EXPOSE 3000
@@ -56,5 +46,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
 
-# Use node directly if start.sh fails
-CMD ["sh", "-c", "if [ -f ./start.sh ]; then ./start.sh; else echo 'Starting directly with node...'; exec node server.js; fi"]
+# Skip the start.sh script entirely - just run node directly
+CMD ["sh", "-c", "echo '🚀 Starting SaaS Application...' && echo '🌐 Domain: $DOMAIN' && echo '📧 Admin: $ADMIN_EMAIL' && exec node server.js"]
