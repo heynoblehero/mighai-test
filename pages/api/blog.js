@@ -1,6 +1,6 @@
 import db from '../../lib/database';
 import jwt from 'jsonwebtoken';
-import config from '../../../lib/config';
+import config from '../../lib/config';
 
 
 

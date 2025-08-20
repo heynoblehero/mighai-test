@@ -2,7 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
-import config from '../../../lib/config';
+import appConfig from '../../../lib/config';
 
 
 
@@ -11,7 +11,7 @@ function getAdmin(req) {
     const token = req.cookies.token || req.headers.authorization?.replace('Bearer ', '');
     if (!token) return null;
     
-    const decoded = jwt.verify(token, config.JWT_SECRET);
+    const decoded = jwt.verify(token, appConfig.JWT_SECRET);
     return decoded.role === 'admin' ? decoded : null;
   } catch (error) {
     return null;
