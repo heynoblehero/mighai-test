@@ -238,21 +238,18 @@ SMTP_FROM=
 REDIS_URL=redis://redis:6379
 EOF
 
-# Download deployment files from GitHub
-echo -e "${BLUE}📥 Downloading application files...${NC}"
-cd /tmp
-wget -q https://raw.githubusercontent.com/heynoblehero/mighai-test/main/docker-compose.prod.yml
-wget -q https://raw.githubusercontent.com/heynoblehero/mighai-test/main/nginx.prod.conf
-wget -q https://raw.githubusercontent.com/heynoblehero/mighai-test/main/Dockerfile.prod
+# Download and extract application source code
+echo -e "${BLUE}📥 Downloading application source code...${NC}"
+cd $APP_DIR
+curl -sL https://github.com/heynoblehero/mighai-test/archive/refs/heads/main.tar.gz | tar xz --strip-components=1
 
 # Create docker-compose.yml with environment substitution
 echo -e "${BLUE}🐳 Creating Docker Compose configuration...${NC}"
 export DOMAIN EMAIL
-envsubst '$DOMAIN $EMAIL' < docker-compose.prod.yml > $APP_DIR/docker-compose.yml
+envsubst '$DOMAIN $EMAIL' < docker-compose.prod.yml > docker-compose.yml
 
-# Copy nginx configuration
-envsubst '$DOMAIN' < nginx.prod.conf > $APP_DIR/nginx.conf
-cp Dockerfile.prod $APP_DIR/
+# Create nginx configuration with domain substitution
+envsubst '$DOMAIN' < nginx.prod.conf > nginx.conf
 
 # Create startup script
 cat > $APP_DIR/start.sh << 'EOF'
@@ -304,7 +301,7 @@ Group=deploy
 WorkingDirectory=/opt/saas-app
 Environment=HOME=/home/deploy
 ExecStart=/opt/saas-app/start.sh
-ExecStop=/usr/local/bin/docker-compose down
+ExecStop=/bin/bash -c "cd /opt/saas-app && docker-compose down"
 TimeoutStartSec=300
 Restart=on-failure
 RestartSec=30
