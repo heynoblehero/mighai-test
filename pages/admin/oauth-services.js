@@ -90,7 +90,7 @@ export default function OAuthServices() {
     authorization_url: '',
     token_url: '',
     scope_default: '',
-    redirect_uri: `${window.location.origin}/api/oauth/callback/`,
+    redirect_uri: '/api/oauth/callback/',
     icon_url: '',
     category: 'other',
     is_active: true
@@ -98,6 +98,14 @@ export default function OAuthServices() {
 
   useEffect(() => {
     fetchServices();
+    
+    // Set proper redirect URI when component mounts on client
+    if (typeof window !== 'undefined') {
+      setFormData(prev => ({
+        ...prev,
+        redirect_uri: `${window.location.origin}/api/oauth/callback/`
+      }));
+    }
   }, []);
 
   const fetchServices = async () => {
@@ -197,14 +205,22 @@ export default function OAuthServices() {
 
   const loadPreset = (presetKey) => {
     const preset = PRESET_SERVICES[presetKey];
+    const redirectUri = typeof window !== 'undefined' 
+      ? `${window.location.origin}/api/oauth/callback/` 
+      : '/api/oauth/callback/';
+      
     setFormData({
       ...formData,
       ...preset,
-      redirect_uri: `${window.location.origin}/api/oauth/callback/`
+      redirect_uri: redirectUri
     });
   };
 
   const resetForm = () => {
+    const redirectUri = typeof window !== 'undefined' 
+      ? `${window.location.origin}/api/oauth/callback/` 
+      : '/api/oauth/callback/';
+      
     setFormData({
       name: '',
       display_name: '',
@@ -214,7 +230,7 @@ export default function OAuthServices() {
       authorization_url: '',
       token_url: '',
       scope_default: '',
-      redirect_uri: `${window.location.origin}/api/oauth/callback/`,
+      redirect_uri: redirectUri,
       icon_url: '',
       category: 'other',
       is_active: true
