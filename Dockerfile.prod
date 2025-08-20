@@ -35,10 +35,12 @@ RUN npm ci --omit=dev && npm cache clean --force
 # Copy built application
 COPY --from=builder --chown=nextjs:nodejs /app ./
 
-# Create directories with proper permissions for database and uploads
+# Create directories and database file with proper permissions
 RUN mkdir -p data uploads logs && \
-    chown -R nextjs:nodejs data uploads logs && \
-    chmod -R 755 data uploads logs
+    touch site_builder.db && \
+    chown -R nextjs:nodejs data uploads logs . site_builder.db && \
+    chmod -R 755 data uploads logs && \
+    chmod 644 site_builder.db
 
 # Install wget for health checks and sqlite3 for database testing
 RUN apk add --no-cache wget sqlite
@@ -52,13 +54,10 @@ RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo 'mkdir -p /app/data' >> entrypoint.sh && \
     echo 'cd /app' >> entrypoint.sh && \
     echo '# Check database file' >> entrypoint.sh && \
-    echo 'echo "🔍 Checking for database file..."' >> entrypoint.sh && \
-    echo 'if [ ! -f ./site_builder.db ]; then' >> entrypoint.sh && \
-    echo '  echo "⚠️ Database not found, creating empty one..."' >> entrypoint.sh && \
-    echo '  touch ./site_builder.db' >> entrypoint.sh && \
-    echo 'fi' >> entrypoint.sh && \
-    echo 'echo "🗄️  Database status:"' >> entrypoint.sh && \
-    echo 'ls -la ./site_builder.db || echo "Database file not found"' >> entrypoint.sh && \
+    echo 'echo "🔍 Database file status:"' >> entrypoint.sh && \
+    echo 'ls -la ./site_builder.db' >> entrypoint.sh && \
+    echo 'echo "📁 Working directory: $(pwd)"' >> entrypoint.sh && \
+    echo 'echo "👤 Current user: $(whoami)"' >> entrypoint.sh && \
     echo 'echo "DATABASE_URL: $DATABASE_URL"' >> entrypoint.sh && \
     echo 'echo "🚀 Starting Node.js application..."' >> entrypoint.sh && \
     echo 'exec node server.js' >> entrypoint.sh && \
