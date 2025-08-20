@@ -61,13 +61,16 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             echo "🚀 Universal SaaS Deployment Script"
             echo ""
-            echo "Usage: $0 --domain=example.com --email=admin@example.com [options]"
+            echo "Usage Examples:"
+            echo "  # Domain deployment (with SSL):"
+            echo "  $0 --domain=example.com --email=admin@example.com"
             echo ""
-            echo "Required:"
-            echo "  --domain=DOMAIN     Your domain name (e.g., myapp.com)"
-            echo "  --email=EMAIL       Admin email for SSL certificates"
+            echo "  # IP-only deployment (no domain required):"
+            echo "  $0"
             echo ""
             echo "Options:"
+            echo "  --domain=DOMAIN    Your domain name (optional - uses server IP if omitted)"
+            echo "  --email=EMAIL      Admin email for SSL certificates (required for domains)"
             echo "  --db=TYPE          Database type: sqlite (default) | postgresql"
             echo "  --ssl=TYPE         SSL type: letsencrypt (default) | self-signed"
             echo "  --port=PORT        Application port (default: 3000)"
@@ -75,6 +78,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --no-update        Skip system updates"
             echo "  --no-user          Skip creating deploy user"
             echo "  -h, --help         Show this help message"
+            echo ""
+            echo "💡 For testing without a domain, just run: curl -sSL url/deploy.sh | sudo bash"
             echo ""
             exit 0
             ;;
@@ -86,15 +91,27 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validation
+# Get server IP for IP-only deployments
+SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || echo "localhost")
+
+# Validation - make domain optional
 if [[ -z "$DOMAIN" ]]; then
-    echo -e "${RED}❌ Error: Domain is required. Use --domain=yourdomain.com${NC}"
+    echo -e "${YELLOW}⚠️  No domain provided. Using IP-only deployment: $SERVER_IP${NC}"
+    DOMAIN="$SERVER_IP"
+    DOMAIN_MODE="ip"
+else
+    DOMAIN_MODE="domain"
+fi
+
+if [[ -z "$EMAIL" && "$DOMAIN_MODE" == "domain" ]]; then
+    echo -e "${RED}❌ Error: Email is required for domain deployments (SSL certificates)${NC}"
+    echo -e "${YELLOW}💡 For IP-only deployment, skip --email parameter${NC}"
     exit 1
 fi
 
+# Set default email for IP deployments
 if [[ -z "$EMAIL" ]]; then
-    echo -e "${RED}❌ Error: Email is required. Use --email=admin@yourdomain.com${NC}"
-    exit 1
+    EMAIL="admin@$DOMAIN"
 fi
 
 # Header
@@ -243,13 +260,179 @@ echo -e "${BLUE}📥 Downloading application source code...${NC}"
 cd $APP_DIR
 curl -sL https://github.com/heynoblehero/mighai-test/archive/refs/heads/main.tar.gz | tar xz --strip-components=1
 
-# Create docker-compose.yml with environment substitution
+# Create docker-compose.yml based on deployment mode
 echo -e "${BLUE}🐳 Creating Docker Compose configuration...${NC}"
-export DOMAIN EMAIL
-envsubst '$DOMAIN $EMAIL' < docker-compose.prod.yml > docker-compose.yml
+if [[ "$DOMAIN_MODE" == "ip" ]]; then
+    # IP-only deployment - no SSL/certbot
+    cat > docker-compose.yml << EOF
+version: '3.8'
 
-# Create nginx configuration with domain substitution
-envsubst '$DOMAIN' < nginx.prod.conf > nginx.conf
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: saas-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DOMAIN=$DOMAIN
+      - ADMIN_EMAIL=$EMAIL
+    volumes:
+      - ./data:/app/data:rw
+      - ./uploads:/app/uploads:rw
+      - ./logs:/app/logs:rw
+    networks:
+      - saas-network
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: saas-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./logs/nginx:/var/log/nginx:rw
+    networks:
+      - saas-network
+    depends_on:
+      - app
+
+  redis:
+    image: redis:alpine
+    container_name: saas-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - saas-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  saas-network:
+    driver: bridge
+EOF
+else
+    # Domain deployment - with SSL
+    export DOMAIN EMAIL
+    envsubst '$DOMAIN $EMAIL' < docker-compose.prod.yml > docker-compose.yml
+fi
+
+# Create nginx configuration based on deployment mode
+echo -e "${BLUE}🌐 Creating web server configuration...${NC}"
+if [[ "$DOMAIN_MODE" == "ip" ]]; then
+    # Simple HTTP-only nginx for IP access
+    cat > nginx.conf << EOF
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+    use epoll;
+    multi_accept on;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    log_format main '\$remote_addr - \$remote_user [\$time_local] "\$request" '
+                    '\$status \$body_bytes_sent "\$http_referer" '
+                    '"\$http_user_agent" "\$http_x_forwarded_for"';
+    access_log /var/log/nginx/access.log main;
+    
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    client_max_body_size 100M;
+    
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1000;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        text/javascript
+        application/json
+        application/javascript
+        application/xml+rss
+        application/atom+xml
+        image/svg+xml;
+    
+    upstream app {
+        server app:3000;
+        keepalive 32;
+    }
+    
+    server {
+        listen 80;
+        server_name _;
+        
+        # Health check endpoint
+        location /health {
+            access_log off;
+            return 200 "OK\n";
+            add_header Content-Type text/plain;
+        }
+        
+        # Static files caching
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)\$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            proxy_pass http://app;
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+        }
+        
+        # Everything else to the app
+        location / {
+            proxy_pass http://app;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_cache_bypass \$http_upgrade;
+            proxy_read_timeout 300s;
+            proxy_connect_timeout 75s;
+        }
+    }
+}
+EOF
+else
+    # Domain deployment with SSL
+    envsubst '$DOMAIN' < nginx.prod.conf > nginx.conf
+fi
 
 # Create startup script
 cat > $APP_DIR/start.sh << 'EOF'
@@ -313,23 +496,109 @@ EOF
 systemctl daemon-reload
 systemctl enable saas-app.service
 
-# Create health check script
-cat > /opt/saas-app/health-check.sh << 'EOF'
+# Create comprehensive health check script
+cat > /opt/saas-app/health-check.sh << EOF
 #!/bin/bash
-# Health check script - runs every 5 minutes via cron
+# Comprehensive health check script
 
-DOMAIN=${1:-localhost}
+DOMAIN_MODE="$DOMAIN_MODE"
+DOMAIN="$DOMAIN"
+SERVER_IP="$SERVER_IP"
 STATUS_FILE="/opt/saas-app/health.status"
+LOG_FILE="/opt/saas-app/logs/health.log"
 
-# Check if application is responding
-if curl -f -s --max-time 10 "https://$DOMAIN/api/health" > /dev/null; then
-    echo "$(date): OK" > $STATUS_FILE
-    exit 0
+# Create log directory
+mkdir -p /opt/saas-app/logs
+
+# Function to log with timestamp
+log() {
+    echo "\$(date '+%Y-%m-%d %H:%M:%S'): \$1" | tee -a \$LOG_FILE
+}
+
+# Function to check service
+check_service() {
+    local service_name=\$1
+    local container_name=\$2
+    
+    if docker ps --format "table {{.Names}}" | grep -q "^\$container_name\$"; then
+        log "✅ \$service_name container is running"
+        return 0
+    else
+        log "❌ \$service_name container is not running"
+        return 1
+    fi
+}
+
+# Function to check HTTP endpoint
+check_endpoint() {
+    local url=\$1
+    local name=\$2
+    
+    if curl -f -s --max-time 10 "\$url" > /dev/null 2>&1; then
+        log "✅ \$name endpoint is responding"
+        return 0
+    else
+        log "❌ \$name endpoint is not responding"
+        return 1
+    fi
+}
+
+log "🔍 Starting health check..."
+
+# Check Docker containers
+CONTAINERS_OK=0
+check_service "Application" "saas-app" && ((CONTAINERS_OK++))
+check_service "Nginx" "saas-nginx" && ((CONTAINERS_OK++))
+check_service "Redis" "saas-redis" && ((CONTAINERS_OK++))
+
+# Check endpoints based on deployment mode
+ENDPOINTS_OK=0
+if [[ "\$DOMAIN_MODE" == "ip" ]]; then
+    # IP-only deployment - check HTTP
+    check_endpoint "http://\$SERVER_IP/health" "Nginx health check" && ((ENDPOINTS_OK++))
+    check_endpoint "http://localhost:3000/api/health" "App health check" && ((ENDPOINTS_OK++))
+    REQUIRED_ENDPOINTS=2
+    ACCESS_URL="http://\$SERVER_IP"
 else
-    echo "$(date): FAILED - Restarting application..." > $STATUS_FILE
-    systemctl restart saas-app.service
-    exit 1
+    # Domain deployment - check both HTTP and HTTPS
+    check_endpoint "http://\$DOMAIN/health" "HTTP health check" && ((ENDPOINTS_OK++))
+    check_endpoint "https://\$DOMAIN/api/health" "HTTPS App health check" && ((ENDPOINTS_OK++))
+    REQUIRED_ENDPOINTS=2
+    ACCESS_URL="https://\$DOMAIN"
 fi
+
+# Overall health assessment
+TOTAL_SCORE=\$((CONTAINERS_OK + ENDPOINTS_OK))
+MAX_SCORE=\$((3 + REQUIRED_ENDPOINTS))
+
+if [[ \$TOTAL_SCORE -eq \$MAX_SCORE ]]; then
+    STATUS="HEALTHY"
+    log "✅ All systems healthy (\$TOTAL_SCORE/\$MAX_SCORE)"
+    echo "HEALTHY - \$(date)" > \$STATUS_FILE
+    EXIT_CODE=0
+elif [[ \$TOTAL_SCORE -ge \$((MAX_SCORE / 2)) ]]; then
+    STATUS="DEGRADED" 
+    log "⚠️  System partially healthy (\$TOTAL_SCORE/\$MAX_SCORE)"
+    echo "DEGRADED - \$(date)" > \$STATUS_FILE
+    EXIT_CODE=1
+else
+    STATUS="UNHEALTHY"
+    log "❌ System unhealthy (\$TOTAL_SCORE/\$MAX_SCORE) - Restarting..."
+    echo "UNHEALTHY - \$(date)" > \$STATUS_FILE
+    systemctl restart saas-app.service
+    EXIT_CODE=2
+fi
+
+# Display status
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🏥 HEALTH CHECK REPORT"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📊 Status: \$STATUS (\$TOTAL_SCORE/\$MAX_SCORE)"
+echo "🌐 Access URL: \$ACCESS_URL"
+echo "📅 Checked: \$(date)"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+exit \$EXIT_CODE
 EOF
 
 chmod +x /opt/saas-app/health-check.sh
@@ -352,20 +621,38 @@ echo "╚═══════════════════════�
 echo -e "${NC}"
 echo -e "${GREEN}🎉 Your SaaS application is now deployed!${NC}"
 echo ""
-echo -e "${YELLOW}📋 NEXT STEPS:${NC}"
-echo "   1. 🌐 Point your domain DNS A record to: $(curl -s ifconfig.me)"
-echo "   2. ⏳ Wait 2-5 minutes for SSL certificate generation"
-echo "   3. 🔧 Edit configuration: /opt/saas-app/.env"
-echo "   4. 🔄 Restart after config changes: sudo systemctl restart saas-app"
+
+if [[ "$DOMAIN_MODE" == "ip" ]]; then
+    echo -e "${BLUE}🌐 ACCESS YOUR APPLICATION:${NC}"
+    echo "   http://$SERVER_IP"
+    echo ""
+    echo -e "${YELLOW}📋 NEXT STEPS (Optional):${NC}"
+    echo "   1. 🔧 Edit configuration: /opt/saas-app/.env"
+    echo "   2. 🔄 Restart after config changes: sudo systemctl restart saas-app"
+    echo "   3. 🌐 Add domain later: Point DNS to $SERVER_IP and redeploy with domain"
+else
+    echo -e "${YELLOW}📋 NEXT STEPS:${NC}"
+    echo "   1. 🌐 Point your domain DNS A record to: $SERVER_IP"
+    echo "   2. ⏳ Wait 2-5 minutes for SSL certificate generation"
+    echo "   3. 🔧 Edit configuration: /opt/saas-app/.env"
+    echo "   4. 🔄 Restart after config changes: sudo systemctl restart saas-app"
+    echo ""
+    echo -e "${BLUE}🌐 Your application will be available at:${NC}"
+    echo "   https://$DOMAIN"
+fi
+
 echo ""
 echo -e "${BLUE}📊 MANAGEMENT COMMANDS:${NC}"
-echo "   Status:    sudo systemctl status saas-app"
-echo "   Restart:   sudo systemctl restart saas-app"
-echo "   Logs:      sudo journalctl -fu saas-app"
-echo "   App logs:  docker logs saas-app"
+echo "   Status:     sudo systemctl status saas-app"
+echo "   Restart:    sudo systemctl restart saas-app"
+echo "   Logs:       sudo journalctl -fu saas-app"
+echo "   App logs:   docker logs saas-app"
+echo "   Health:     /opt/saas-app/health-check.sh"
 echo ""
-echo -e "${BLUE}🌐 Your application will be available at:${NC}"
-echo "   https://$DOMAIN"
+echo -e "${BLUE}🏥 HEALTH CHECK:${NC}"
+echo "   Run health check: /opt/saas-app/health-check.sh"
+echo "   View logs: tail -f /opt/saas-app/logs/health.log"
+echo "   Auto-check runs every 5 minutes via cron"
 echo ""
 
 # Show final status
