@@ -5,8 +5,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { slug } = req.query;
-
   try {
     // Initialize blog_posts table if it doesn't exist
     db.prepare(`
@@ -24,18 +22,16 @@ export default async function handler(req, res) {
     `).run();
 
     // Only return published posts for public API
-    const post = db.prepare(`
-      SELECT * FROM blog_posts 
-      WHERE slug = ? AND is_published = TRUE
-    `).get(slug);
+    const posts = db.prepare(`
+      SELECT id, title, slug, excerpt, featured_image, created_at 
+      FROM blog_posts 
+      WHERE is_published = TRUE 
+      ORDER BY created_at DESC
+    `).all();
     
-    if (!post) {
-      return res.status(404).json({ error: 'Blog post not found' });
-    }
-    
-    res.status(200).json(post);
+    res.status(200).json(posts);
   } catch (error) {
-    console.error('Failed to fetch blog post:', error);
-    res.status(500).json({ error: 'Failed to fetch blog post' });
+    console.error('Failed to fetch published blog posts:', error);
+    res.status(500).json({ error: 'Failed to fetch blog posts' });
   }
 }
