@@ -22,12 +22,21 @@ RUN git config --global user.name "Platform Auto-Update" && \
     git config --global user.email "noreply@platform.local" && \
     git config --global init.defaultBranch main
 
-# Clone the repository (this gives us full git history)
-ARG REPO_URL=https://github.com/heynoblehero/mighai-test.git
-ARG BRANCH=main
-RUN git clone --branch ${BRANCH} ${REPO_URL} . && \
-    echo "🎯 Cloned repository from ${REPO_URL} (branch: ${BRANCH})" && \
-    git log --oneline -3
+# Copy source code (including .git directory for version tracking)
+COPY . .
+
+# Ensure we have git history for version tracking
+RUN if [ ! -d ".git" ]; then \
+        echo "⚠️  No .git directory found, initializing..."; \
+        ARG REPO_URL=https://github.com/heynoblehero/mighai-test.git; \
+        ARG BRANCH=main; \
+        rm -rf * .[^.]* 2>/dev/null || true; \
+        git clone --branch ${BRANCH} ${REPO_URL} .; \
+        echo "🎯 Cloned repository from ${REPO_URL} (branch: ${BRANCH})"; \
+    else \
+        echo "✅ Git repository already present"; \
+    fi && \
+    git log --oneline -3 2>/dev/null || echo "⚠️  No git history available"
 
 # Install dependencies
 RUN npm ci --omit=dev && npm cache clean --force
@@ -55,10 +64,14 @@ RUN echo '#!/bin/sh' > entrypoint.sh && \
     echo '' >> entrypoint.sh && \
     echo '# Git repository status' >> entrypoint.sh && \
     echo 'echo "📋 Git Status:"' >> entrypoint.sh && \
-    echo 'git status --porcelain || echo "⚠️  Git status check failed"' >> entrypoint.sh && \
-    echo 'echo "🏷️  Current version: $(git rev-parse --short HEAD 2>/dev/null || echo \"unknown\")"' >> entrypoint.sh && \
-    echo 'echo "🌿 Current branch: $(git branch --show-current 2>/dev/null || echo \"unknown\")"' >> entrypoint.sh && \
-    echo 'echo "🔗 Remote origin: $(git remote get-url origin 2>/dev/null || echo \"not set\")"' >> entrypoint.sh && \
+    echo 'if [ -d ".git" ]; then' >> entrypoint.sh && \
+    echo '  git status --porcelain || echo "⚠️  Git status check failed"' >> entrypoint.sh && \
+    echo '  echo "🏷️  Current version: $(git rev-parse --short HEAD 2>/dev/null || echo \"unknown\")"' >> entrypoint.sh && \
+    echo '  echo "🌿 Current branch: $(git branch --show-current 2>/dev/null || echo \"unknown\")"' >> entrypoint.sh && \
+    echo '  echo "🔗 Remote origin: $(git remote get-url origin 2>/dev/null || echo \"not set\")"' >> entrypoint.sh && \
+    echo 'else' >> entrypoint.sh && \
+    echo '  echo "⚠️  No git repository found in container"' >> entrypoint.sh && \
+    echo 'fi' >> entrypoint.sh && \
     echo '' >> entrypoint.sh && \
     echo '# Database status' >> entrypoint.sh && \
     echo 'echo "🗄️  Database file status:"' >> entrypoint.sh && \

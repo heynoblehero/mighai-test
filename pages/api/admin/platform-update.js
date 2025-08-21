@@ -18,19 +18,37 @@ export default async function handler(req, res) {
 
 async function handleCheckUpdates(req, res) {
   try {
+    const debug = {
+      workingDir: process.cwd(),
+      gitInstalled: false,
+      isGitRepo: false
+    };
+
+    // Check if git is installed
+    try {
+      const { stdout: gitVersion } = await execAsync('git --version');
+      debug.gitInstalled = true;
+      debug.gitVersion = gitVersion.trim();
+    } catch (error) {
+      debug.gitError = error.message;
+    }
+
     // Check if we're in a git repository
     let isGitRepo = false;
     try {
       await execAsync('git rev-parse --git-dir');
       isGitRepo = true;
+      debug.isGitRepo = true;
     } catch (error) {
+      debug.gitRepoError = error.message;
       return res.status(200).json({
         success: true,
         updateInfo: {
           hasUpdate: false,
-          message: 'Not a git repository. Manual updates required.',
+          message: `Not a git repository. Git installed: ${debug.gitInstalled}. Working dir: ${debug.workingDir}`,
           currentVersion: 'unknown',
-          latestVersion: 'unknown'
+          latestVersion: 'unknown',
+          debug
         }
       });
     }
