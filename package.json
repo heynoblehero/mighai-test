@@ -38,14 +38,14 @@
     "recharts": "^3.1.2",
     "resend": "^6.0.1",
     "sqlite3": "^5.1.6",
+    "tailwindcss": "^3.3.0",
+    "postcss": "^8.4.31",
+    "autoprefixer": "^10.4.16",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.8.0",
-    "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
-    "nodemon": "^3.1.0",
-    "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.0"
+    "nodemon": "^3.1.0"
   }
 }
