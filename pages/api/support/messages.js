@@ -1,6 +1,7 @@
 import db from '../../../lib/database';
 import jwt from 'jsonwebtoken';
 import config from '../../../lib/config';
+import telegramNotifier from '../../../lib/telegram.js';
 
 
 
@@ -73,6 +74,20 @@ export default async function handler(req, res) {
       const newMessage = db.prepare(`
         SELECT * FROM support_messages WHERE id = ?
       `).get(result.lastInsertRowid);
+
+      // Get user details for notification
+      const userDetails = db.prepare('SELECT * FROM users WHERE id = ?').get(user.userId);
+
+      // Send Telegram notification for new support request
+      try {
+        await telegramNotifier.sendNotification('supportRequest', {
+          email: userDetails?.email || 'Unknown',
+          subject: 'New Support Message',
+          message: message.trim()
+        });
+      } catch (telegramError) {
+        console.error('Failed to send Telegram notification:', telegramError);
+      }
 
       const response = { 
         success: true, 

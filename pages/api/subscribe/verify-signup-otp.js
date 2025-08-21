@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const emailService = require('../../../services/emailService');
+import telegramNotifier from '../../../lib/telegram.js';
 
 const dbPath = path.join(process.cwd(), 'site_builder.db');
 
@@ -68,6 +69,17 @@ export default async function handler(req, res) {
       });
     } catch (notificationError) {
       console.error('Failed to send admin notification:', notificationError);
+    }
+
+    // Send Telegram notification for new signup
+    try {
+      await telegramNotifier.sendNotification('newSignup', {
+        username: username,
+        email: email,
+        plan: 'Free Plan'
+      });
+    } catch (telegramError) {
+      console.error('Failed to send Telegram notification:', telegramError);
     }
 
     res.status(201).json({ 

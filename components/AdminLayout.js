@@ -55,6 +55,7 @@ const navigation = [
     name: 'System',
     items: [
       { name: 'Platform Update', href: '/admin/platform-update', icon: 'refresh', current: false },
+      { name: 'Telegram Settings', href: '/admin/telegram-settings', icon: 'message-square', current: false },
       { name: 'Support', href: '/admin/support-messages', icon: 'message-circle', current: false },
       { name: 'Monitoring', href: '/admin/error-monitoring', icon: 'alert-triangle', current: false, badge: '3' },
       { name: 'Settings', href: '/admin/settings', icon: 'settings', current: false },
@@ -187,6 +188,11 @@ const icons = {
       <circle cx="12" cy="8" r="1" />
       <circle cx="16" cy="12" r="1" />
       <circle cx="8" cy="16" r="1" />
+    </svg>
+  ),
+  'message-square': (
+    <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
     </svg>
   ),
 };
