@@ -217,9 +217,17 @@ fi
 
 # Create application directory
 APP_DIR="/opt/saas-app"
-echo -e "${BLUE}📁 Creating application directory: $APP_DIR${NC}"
-mkdir -p $APP_DIR/{data,uploads,logs,ssl}
+echo -e "${BLUE}📁 Setting up application directory: $APP_DIR${NC}"
+
+# Ensure directory exists and is clean for git clone
+if [ -d "$APP_DIR" ]; then
+    echo -e "${YELLOW}⚠️  Cleaning existing directory...${NC}"
+    rm -rf $APP_DIR
+fi
+
+mkdir -p $APP_DIR
 chown -R deploy:deploy $APP_DIR
+chmod 755 $APP_DIR
 
 # Generate environment file
 echo -e "${BLUE}⚙️  Generating environment configuration...${NC}"
@@ -257,7 +265,12 @@ EOF
 
 # Clone git repository for full version control support
 echo -e "${BLUE}📥 Cloning application repository with git integration...${NC}"
-cd $APP_DIR
+
+# Ensure we can access the directory
+cd $APP_DIR || {
+    echo -e "${RED}❌ Failed to access application directory${NC}"
+    exit 1
+}
 
 # Install git if not present
 if ! command -v git &> /dev/null; then
@@ -289,13 +302,34 @@ if [ -d ".git" ]; then
     echo -e "${GREEN}✅ Repository updated to latest ${BRANCH}${NC}"
 else
     echo -e "${BLUE}📥 Cloning repository...${NC}"
+    # Remove any existing files that might interfere
+    rm -rf * .* 2>/dev/null || true
     git clone --branch $BRANCH $REPO_URL .
-    echo -e "${GREEN}✅ Repository cloned successfully${NC}"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ Repository cloned successfully${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Git clone failed, trying alternative method...${NC}"
+        # Fallback to clean clone
+        cd ..
+        rm -rf saas-app-temp
+        git clone --branch $BRANCH $REPO_URL saas-app-temp
+        mv saas-app-temp/* $APP_DIR/ 2>/dev/null || true
+        mv saas-app-temp/.[^.]* $APP_DIR/ 2>/dev/null || true
+        rm -rf saas-app-temp
+        cd $APP_DIR
+        echo -e "${GREEN}✅ Repository cloned via fallback method${NC}"
+    fi
 fi
 
 # Show current version
 CURRENT_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 echo -e "${GREEN}🏷️  Current version: $CURRENT_VERSION${NC}"
+
+# Create necessary data directories
+echo -e "${BLUE}📁 Creating data directories...${NC}"
+mkdir -p data uploads logs ssl
+chown -R deploy:deploy data uploads logs ssl
+chmod 755 data uploads logs ssl
 
 # Create docker-compose.yml based on deployment mode
 echo -e "${BLUE}🐳 Creating Docker Compose configuration...${NC}"
