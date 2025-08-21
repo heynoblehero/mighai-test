@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 🚀 Universal SaaS Deployment Script
-# Works on any Linux server with one command
-# Usage: curl -sSL https://raw.githubusercontent.com/user/repo/main/deploy.sh | bash -s -- --domain=example.com --email=admin@example.com
+# 🚀 Universal SaaS Deployment Script with Git Integration
+# Works on any Linux server with one command - includes platform update system
+# Usage: curl -sSL https://raw.githubusercontent.com/heynoblehero/mighai-test/main/deploy.sh | bash -s -- --domain=example.com --email=admin@example.com
 
 set -e  # Exit on any error
 
@@ -255,10 +255,47 @@ SMTP_FROM=
 REDIS_URL=redis://redis:6379
 EOF
 
-# Download and extract application source code
-echo -e "${BLUE}📥 Downloading application source code...${NC}"
+# Clone git repository for full version control support
+echo -e "${BLUE}📥 Cloning application repository with git integration...${NC}"
 cd $APP_DIR
-curl -sL https://github.com/heynoblehero/mighai-test/archive/refs/heads/main.tar.gz | tar xz --strip-components=1
+
+# Install git if not present
+if ! command -v git &> /dev/null; then
+    echo -e "${BLUE}📦 Installing git...${NC}"
+    case $OS in
+        *"Ubuntu"*|*"Debian"*)
+            apt-get update && apt-get install -y git
+            ;;
+        *"CentOS"*|*"Red Hat"*)
+            yum install -y git
+            ;;
+        *"Fedora"*)
+            dnf install -y git
+            ;;
+        *)
+            echo -e "${YELLOW}⚠️  Git installation may be required manually${NC}"
+            ;;
+    esac
+fi
+
+# Clone the repository for full git support
+REPO_URL="https://github.com/heynoblehero/mighai-test.git"
+BRANCH="main"
+
+if [ -d ".git" ]; then
+    echo -e "${BLUE}🔄 Updating existing repository...${NC}"
+    git fetch origin
+    git reset --hard origin/$BRANCH
+    echo -e "${GREEN}✅ Repository updated to latest ${BRANCH}${NC}"
+else
+    echo -e "${BLUE}📥 Cloning repository...${NC}"
+    git clone --branch $BRANCH $REPO_URL .
+    echo -e "${GREEN}✅ Repository cloned successfully${NC}"
+fi
+
+# Show current version
+CURRENT_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+echo -e "${GREEN}🏷️  Current version: $CURRENT_VERSION${NC}"
 
 # Create docker-compose.yml based on deployment mode
 echo -e "${BLUE}🐳 Creating Docker Compose configuration...${NC}"
@@ -272,6 +309,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
+      args:
+        - REPO_URL=https://github.com/heynoblehero/mighai-test.git
+        - BRANCH=main
     container_name: saas-app
     restart: unless-stopped
     environment:
@@ -635,35 +675,47 @@ echo "╔═══════════════════════�
 echo "║                     ✅ DEPLOYMENT COMPLETE!                   ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
-echo -e "${GREEN}🎉 Your SaaS application is now deployed!${NC}"
+echo -e "${GREEN}🎉 Your SaaS application is now deployed with Git integration!${NC}"
+echo ""
+echo -e "${GREEN}🔧 Git Integration Features:${NC}"
+echo "   ✅ Full repository history available in container"
+echo "   ✅ Platform update system fully functional"
+echo "   ✅ Version tracking with real commit hashes"
+echo "   ✅ One-click updates through admin panel"
 echo ""
 
 if [[ "$DOMAIN_MODE" == "ip" ]]; then
     echo -e "${BLUE}🌐 ACCESS YOUR APPLICATION:${NC}"
     echo "   http://$SERVER_IP"
+    echo "   http://$SERVER_IP/admin (Admin Panel)"
     echo ""
     echo -e "${YELLOW}📋 NEXT STEPS (Optional):${NC}"
     echo "   1. 🔧 Edit configuration: /opt/saas-app/.env"
     echo "   2. 🔄 Restart after config changes: sudo systemctl restart saas-app"
     echo "   3. 🌐 Add domain later: Point DNS to $SERVER_IP and redeploy with domain"
+    echo "   4. 🤖 Configure Telegram bots: http://$SERVER_IP/admin/telegram-bots"
 else
     echo -e "${YELLOW}📋 NEXT STEPS:${NC}"
     echo "   1. 🌐 Point your domain DNS A record to: $SERVER_IP"
     echo "   2. ⏳ Wait 2-5 minutes for SSL certificate generation"
     echo "   3. 🔧 Edit configuration: /opt/saas-app/.env"
     echo "   4. 🔄 Restart after config changes: sudo systemctl restart saas-app"
+    echo "   5. 🤖 Configure Telegram bots: https://$DOMAIN/admin/telegram-bots"
     echo ""
     echo -e "${BLUE}🌐 Your application will be available at:${NC}"
     echo "   https://$DOMAIN"
+    echo "   https://$DOMAIN/admin (Admin Panel)"
 fi
 
 echo ""
 echo -e "${BLUE}📊 MANAGEMENT COMMANDS:${NC}"
-echo "   Status:     sudo systemctl status saas-app"
-echo "   Restart:    sudo systemctl restart saas-app"
-echo "   Logs:       sudo journalctl -fu saas-app"
-echo "   App logs:   docker logs saas-app"
-echo "   Health:     /opt/saas-app/health-check.sh"
+echo "   Status:      sudo systemctl status saas-app"
+echo "   Restart:     sudo systemctl restart saas-app"
+echo "   Logs:        sudo journalctl -fu saas-app"
+echo "   App logs:    docker logs saas-app"
+echo "   Health:      /opt/saas-app/health-check.sh"
+echo "   Version:     cd /opt/saas-app && git rev-parse --short HEAD"
+echo "   Update:      Use admin panel Platform Update or rebuild container"
 echo ""
 echo -e "${BLUE}🏥 HEALTH CHECK:${NC}"
 echo "   Run health check: /opt/saas-app/health-check.sh"
