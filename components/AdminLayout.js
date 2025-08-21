@@ -55,7 +55,7 @@ const navigation = [
     name: 'System',
     items: [
       { name: 'Platform Update', href: '/admin/platform-update', icon: 'refresh', current: false },
-      { name: 'Telegram Settings', href: '/admin/telegram-settings', icon: 'message-square', current: false },
+      { name: 'Telegram Bots', href: '/admin/telegram-bots', icon: 'message-square', current: false },
       { name: 'Support', href: '/admin/support-messages', icon: 'message-circle', current: false },
       { name: 'Monitoring', href: '/admin/error-monitoring', icon: 'alert-triangle', current: false, badge: '3' },
       { name: 'Settings', href: '/admin/settings', icon: 'settings', current: false },
