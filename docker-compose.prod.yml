@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
+      args:
+        - REPO_URL=https://github.com/heynoblehero/mighai-test.git
+        - BRANCH=main
     container_name: saas-app
     restart: unless-stopped
     environment:
