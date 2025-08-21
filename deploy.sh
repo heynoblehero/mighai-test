@@ -229,40 +229,6 @@ mkdir -p $APP_DIR
 chown -R deploy:deploy $APP_DIR
 chmod 755 $APP_DIR
 
-# Generate environment file
-echo -e "${BLUE}⚙️  Generating environment configuration...${NC}"
-cat > $APP_DIR/.env << EOF
-# Production Environment Configuration
-NODE_ENV=production
-PORT=$PORT
-DOMAIN=$DOMAIN
-ADMIN_EMAIL=$EMAIL
-
-# Security
-SESSION_SECRET=$(openssl rand -hex 32)
-ENCRYPTION_KEY=$(openssl rand -hex 32)
-
-# Database - Use the hardcoded path the app expects
-DATABASE_URL=./site_builder.db
-
-# Optional API Keys (set these manually)
-OPENAI_API_KEY=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-FACEBOOK_CLIENT_ID=
-FACEBOOK_CLIENT_SECRET=
-
-# Email (optional)
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-SMTP_FROM=
-
-# Redis
-REDIS_URL=redis://redis:6379
-EOF
-
 # Clone git repository for full version control support
 echo -e "${BLUE}📥 Cloning application repository with git integration...${NC}"
 
@@ -322,14 +288,58 @@ else
 fi
 
 # Show current version
-CURRENT_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-echo -e "${GREEN}🏷️  Current version: $CURRENT_VERSION${NC}"
+if [ -d ".git" ]; then
+    CURRENT_VERSION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    echo -e "${GREEN}🏷️  Current version: $CURRENT_VERSION${NC}"
+    echo -e "${BLUE}📋 Repository info:${NC}"
+    echo "   Branch: $(git branch --show-current 2>/dev/null || echo 'unknown')"
+    echo "   Remote: $(git remote get-url origin 2>/dev/null || echo 'unknown')"
+else
+    echo -e "${YELLOW}⚠️  No git repository found${NC}"
+    CURRENT_VERSION="unknown"
+fi
 
 # Create necessary data directories
 echo -e "${BLUE}📁 Creating data directories...${NC}"
 mkdir -p data uploads logs ssl
 chown -R deploy:deploy data uploads logs ssl
 chmod 755 data uploads logs ssl
+
+# Generate environment file AFTER git clone
+echo -e "${BLUE}⚙️  Generating environment configuration...${NC}"
+cat > .env << EOF
+# Production Environment Configuration
+NODE_ENV=production
+PORT=$PORT
+DOMAIN=$DOMAIN
+ADMIN_EMAIL=$EMAIL
+
+# Security
+SESSION_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+
+# Database - Use the hardcoded path the app expects
+DATABASE_URL=./site_builder.db
+
+# Optional API Keys (set these manually)
+OPENAI_API_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+FACEBOOK_CLIENT_ID=
+FACEBOOK_CLIENT_SECRET=
+
+# Email (optional)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+
+# Redis
+REDIS_URL=redis://redis:6379
+EOF
+
+echo -e "${GREEN}✅ Environment configuration created${NC}"
 
 # Create docker-compose.yml based on deployment mode
 echo -e "${BLUE}🐳 Creating Docker Compose configuration...${NC}"
