@@ -683,6 +683,77 @@
       }
     ]
   },
+  "landing-page": {
+    "name": "Landing Page",
+    "description": "Main landing page with deployment instructions and platform overview",
+    "layout_type": "public_layout",
+    "content_area": "landing_content",
+    "required_elements": [
+      {
+        "type": "component",
+        "id": "heroSection",
+        "required": true,
+        "description": "Hero section with platform title and deployment instructions",
+        "protection_level": "medium"
+      },
+      {
+        "type": "component",
+        "id": "deploymentInstructions",
+        "required": true,
+        "description": "Step-by-step deployment instructions and curl command",
+        "protection_level": "high"
+      },
+      {
+        "type": "component",
+        "id": "featuresSection",
+        "required": true,
+        "description": "Platform features and capabilities overview",
+        "protection_level": "low"
+      },
+      {
+        "type": "component",
+        "id": "getStartedSection",
+        "required": true,
+        "description": "Get started links to admin panel and customer portal",
+        "protection_level": "medium"
+      },
+      {
+        "type": "link",
+        "id": "adminLink",
+        "href": "/admin",
+        "required": true,
+        "description": "Link to admin panel"
+      },
+      {
+        "type": "link",
+        "id": "customerLink",
+        "href": "/subscribe/signup",
+        "required": true,
+        "description": "Link to customer signup"
+      }
+    ],
+    "required_functionality": [
+      {
+        "name": "copyToClipboard",
+        "description": "Copy deployment command to clipboard",
+        "required": true
+      },
+      {
+        "name": "checkSystemStatus",
+        "description": "Check if system is properly configured",
+        "api_endpoint": "/api/health",
+        "method": "GET",
+        "required": false
+      }
+    ],
+    "styling_guidelines": [
+      "Professional and modern design",
+      "Clear deployment instructions",
+      "Responsive layout",
+      "Good contrast and readability",
+      "Call-to-action buttons"
+    ]
+  },
   "customer-ai-services": {
     "name": "AI Services Page",
     "description": "AI API services connection management for subscribers",

@@ -70,6 +70,7 @@ export default function ReservedPagesIndex() {
   }
 
   const pageTypeMapping = {
+    'landing-page': 'Landing Page',
     'customer-login': 'Customer Login Page',
     'customer-signup': 'Customer Signup Page', 
     'customer-dashboard': 'Customer Dashboard',

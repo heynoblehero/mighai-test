@@ -4,6 +4,30 @@ import Link from 'next/link';
 export default function Home() {
   const [currentFeature, setCurrentFeature] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [customLandingPage, setCustomLandingPage] = useState(null);
+
+  // Check for custom landing page
+  useEffect(() => {
+    const checkCustomLandingPage = async () => {
+      try {
+        const response = await fetch('/api/reserved-page-render?pageType=landing-page');
+        if (response.ok) {
+          const html = await response.text();
+          setCustomLandingPage(html);
+          return;
+        }
+      } catch (error) {
+        console.log('No custom landing page found, using default');
+      }
+    };
+    
+    checkCustomLandingPage();
+  }, []);
+
+  // If custom landing page exists, render it
+  if (customLandingPage) {
+    return <div dangerouslySetInnerHTML={{ __html: customLandingPage }} />;
+  }
 
   useEffect(() => {
     setIsVisible(true);

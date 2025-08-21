@@ -150,12 +150,15 @@ export default async function handler(req, res) {
     // Get the customized page
     const reservedPage = getReservedPage(pageType);
     
-    if (!reservedPage || !reservedPage.html_code) {
+    if (!reservedPage || (!reservedPage.html_code && !reservedPage.content)) {
       return res.status(404).json({ error: 'No customized version found' });
     }
 
+    // Get HTML content (support both html_code and content properties)
+    const htmlContent = reservedPage.html_code || reservedPage.content;
+    
     // Inject necessary JavaScript for functionality
-    let finalHtml = injectInteractivity(reservedPage.html_code, pageType);
+    let finalHtml = injectInteractivity(htmlContent, pageType);
 
     // Set appropriate headers
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
