@@ -1,7 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
-import telegramNotifier from '../../../lib/telegram.js';
 
 const execAsync = promisify(exec);
 
@@ -204,6 +203,10 @@ async function handlePerformUpdate(req, res) {
     // Send Telegram notification for successful platform update
     try {
       const { stdout: newVersion } = await execAsync('git rev-parse HEAD');
+      
+      // Import telegramNotifier here to avoid initialization issues
+      const { default: telegramNotifier } = await import('../../../lib/telegram.js');
+      
       await telegramNotifier.sendNotification('platformUpdate', {
         fromVersion: 'Previous version',
         toVersion: newVersion.trim().substring(0, 7),
@@ -211,6 +214,7 @@ async function handlePerformUpdate(req, res) {
       });
     } catch (telegramError) {
       console.error('Failed to send Telegram notification:', telegramError);
+      // Don't fail the entire update if Telegram notification fails
     }
 
   } catch (error) {

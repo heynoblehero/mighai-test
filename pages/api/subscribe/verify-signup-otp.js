@@ -2,7 +2,6 @@ const bcrypt = require('bcryptjs');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const emailService = require('../../../services/emailService');
-import telegramNotifier from '../../../lib/telegram.js';
 
 const dbPath = path.join(process.cwd(), 'site_builder.db');
 
@@ -73,6 +72,7 @@ export default async function handler(req, res) {
 
     // Send Telegram notification for new signup
     try {
+      const telegramNotifier = (await import('../../../lib/telegram.js')).default;
       await telegramNotifier.sendNotification('newSignup', {
         username: username,
         email: email,
@@ -80,6 +80,7 @@ export default async function handler(req, res) {
       });
     } catch (telegramError) {
       console.error('Failed to send Telegram notification:', telegramError);
+      // Don't fail the signup if Telegram notification fails
     }
 
     res.status(201).json({ 

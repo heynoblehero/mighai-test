@@ -1,7 +1,6 @@
 import db from '../../../lib/database';
 import jwt from 'jsonwebtoken';
 import config from '../../../lib/config';
-import telegramNotifier from '../../../lib/telegram.js';
 
 
 
@@ -80,6 +79,7 @@ export default async function handler(req, res) {
 
       // Send Telegram notification for new support request
       try {
+        const { default: telegramNotifier } = await import('../../../lib/telegram.js');
         await telegramNotifier.sendNotification('supportRequest', {
           email: userDetails?.email || 'Unknown',
           subject: 'New Support Message',
@@ -87,6 +87,7 @@ export default async function handler(req, res) {
         });
       } catch (telegramError) {
         console.error('Failed to send Telegram notification:', telegramError);
+        // Don't fail the support message if Telegram notification fails
       }
 
       const response = { 
