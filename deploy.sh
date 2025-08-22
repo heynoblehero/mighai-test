@@ -701,7 +701,9 @@ mkdir -p $APP_DIR/data $APP_DIR/uploads $APP_DIR/logs
 # Clean any existing database files to avoid permission conflicts
 echo -e "${BLUE}🧹 Cleaning database directory for fresh start...${NC}"
 rm -f $APP_DIR/data/production.db
-rm -f $APP_DIR/data/*.json
+# Keep important config files, only remove user-generated data
+rm -f $APP_DIR/data/ai-usage.json
+rm -f $APP_DIR/data/ai-settings.json
 rm -f $APP_DIR/data/*.md
 rm -rf $APP_DIR/data/reserved-pages
 
