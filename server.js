@@ -553,6 +553,7 @@ db.serialize(() => {
     icon_url TEXT,
     category TEXT DEFAULT 'other',
     is_active BOOLEAN DEFAULT 1,
+    enabled_for_subscribers BOOLEAN DEFAULT 0,
     created_by INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
