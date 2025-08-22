@@ -32,7 +32,8 @@ export default function ReservedPageCustomizer() {
     'customer-layout-sidebar': 'Customer Layout - Sidebar',
     'customer-layout-chat': 'Customer Layout - Chat',
     'customer-connections': 'OAuth Connections Page',
-    'customer-ai-services': 'AI Services Page'
+    'customer-ai-services': 'AI Services Page',
+    'landing-page': 'Landing Page'
   };
 
   useEffect(() => {
