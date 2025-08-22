@@ -30,6 +30,7 @@ function getPageFilePath(pageType) {
     'customer-dashboard': path.join(process.cwd(), 'pages', 'dashboard', 'index.js'),
     'customer-profile': path.join(process.cwd(), 'pages', 'dashboard', 'profile.js'),
     'customer-billing': path.join(process.cwd(), 'pages', 'dashboard', 'upgrade.js'),
+    'landing-page': path.join(process.cwd(), 'pages', 'index.js'),
     'password-reset': null // This would need to be created
   };
   
@@ -102,6 +103,12 @@ import SubscriberLayout from '../../components/SubscriberLayout';`,
 import SubscriberLayout from '../../components/SubscriberLayout';`,
       componentName: 'UpgradePlan',
       layoutWrapper: 'SubscriberLayout'
+    },
+    'landing-page': {
+      imports: `import { useState, useEffect } from 'react';
+import Head from 'next/head';`,
+      componentName: 'LandingPage',
+      layoutWrapper: false
     }
   };
 
@@ -234,6 +241,8 @@ export default async function handler(req, res) {
 
   try {
     const originalFilePath = getPageFilePath(pageType);
+    
+    console.log('Deploy debug - pageType:', pageType, 'filePath:', originalFilePath);
     
     if (!originalFilePath) {
       return res.status(400).json({ error: `No file path configured for page type: ${pageType}` });
