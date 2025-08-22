@@ -7,8 +7,10 @@ export default function PlatformUpdate() {
   const [error, setError] = useState('');
   const [logs, setLogs] = useState([]);
   const [currentVersion, setCurrentVersion] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     fetchCurrentVersion();
   }, []);
 
@@ -104,7 +106,7 @@ export default function PlatformUpdate() {
 
   const addLog = (message) => {
     setLogs(prev => [...prev, {
-      timestamp: new Date().toLocaleTimeString(),
+      timestamp: new Date().toISOString().split('T')[1].split('.')[0],
       message
     }]);
   };
@@ -221,7 +223,7 @@ export default function PlatformUpdate() {
                     <div className="text-xs text-emerald-200/80 space-y-1">
                       <p><span className="font-medium">Message:</span> {updateInfo.latestCommitInfo.message}</p>
                       <p><span className="font-medium">Author:</span> {updateInfo.latestCommitInfo.author}</p>
-                      <p><span className="font-medium">Date:</span> {new Date(updateInfo.latestCommitInfo.date).toLocaleString()}</p>
+                      <p><span className="font-medium">Date:</span> {updateInfo.latestCommitInfo.date ? new Date(updateInfo.latestCommitInfo.date).toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC') : 'Unknown'}</p>
                     </div>
                   </div>
                 )}
@@ -272,8 +274,8 @@ export default function PlatformUpdate() {
             <h3 className="text-lg font-semibold text-slate-200 mb-4">Update Logs</h3>
             <div className="bg-slate-900 rounded-lg p-4 max-h-80 overflow-y-auto">
               <div className="font-mono text-sm space-y-1">
-                {logs.map((log, index) => (
-                  <div key={index} className="text-slate-300">
+                {isClient && logs.map((log, index) => (
+                  <div key={`log-${index}-${log.timestamp}`} className="text-slate-300">
                     <span className="text-slate-500">[{log.timestamp}]</span> {log.message}
                   </div>
                 ))}
