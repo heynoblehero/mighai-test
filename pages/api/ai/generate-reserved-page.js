@@ -267,8 +267,17 @@ export default async function handler(req, res) {
   const rules = getRules();
   const aiContext = getContext();
   const componentContext = getComponentContext();
+  
+  console.log(`AI Generate: Requested pageType: ${pageType}`);
+  console.log('AI Generate: Available rule types:', Object.keys(rules));
+  
   if (!rules[pageType]) {
-    return res.status(400).json({ error: `Unknown page type: ${pageType}` });
+    console.error(`AI Generate Error: Unknown page type: ${pageType}. Available types: ${Object.keys(rules).join(', ')}`);
+    return res.status(400).json({ 
+      error: `Unknown page type: ${pageType}`, 
+      availableTypes: Object.keys(rules),
+      requestedType: pageType 
+    });
   }
 
   try {

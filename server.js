@@ -332,12 +332,7 @@ db.serialize(() => {
     }
   });
 
-  // Add enabled_for_subscribers column to oauth_services
-  db.run(`ALTER TABLE oauth_services ADD COLUMN enabled_for_subscribers BOOLEAN DEFAULT 0`, (err) => {
-    if (err && !err.message.includes('duplicate column name')) {
-      console.error('Error adding enabled_for_subscribers column:', err.message);
-    }
-  });
+  // Note: enabled_for_subscribers column is already included in CREATE TABLE oauth_services
 
   // Integration Categories table
   db.run(`CREATE TABLE IF NOT EXISTS integration_categories (
