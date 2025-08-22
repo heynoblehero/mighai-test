@@ -23,7 +23,6 @@ const navigation = [
     items: [
       { name: 'Subscribers', href: '/admin/subscribers', icon: 'users', current: false },
       { name: 'Plans', href: '/admin/plans', icon: 'credit-card', current: false },
-      { name: 'Users', href: '/admin/users', icon: 'user-check', current: false },
       { name: 'Checkout Links', href: '/admin/checkout-links', icon: 'link', current: false },
       { name: 'Pricing Table', href: '/admin/pricing-table', icon: 'table', current: false },
     ]

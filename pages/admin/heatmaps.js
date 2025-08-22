@@ -214,21 +214,21 @@ export default function Heatmaps() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
               <input
                 type="date"
                 value={filters.start_date}
                 onChange={(e) => setFilters(prev => ({ ...prev, start_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">End Date</label>
               <input
                 type="date"
                 value={filters.end_date}
                 onChange={(e) => setFilters(prev => ({ ...prev, end_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
               />
             </div>
           </div>
