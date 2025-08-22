@@ -160,9 +160,9 @@ export default function PlatformUpdate() {
         {/* Current Version Info */}
         <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <h3 className="text-lg font-semibold text-slate-200 mb-2">Current Version</h3>
-              <div className="text-slate-400">
+              <div className="text-slate-400 space-y-1">
                 <p>Version: <span className="text-slate-200 font-mono">{currentVersion || 'Loading...'}</span></p>
                 <p>Repository: <span className="text-slate-200">mighai-universal-saas</span></p>
               </div>
@@ -198,23 +198,40 @@ export default function PlatformUpdate() {
 
             {/* Update Available */}
             {updateInfo?.hasUpdate && (
-              <div className="flex items-center justify-between p-4 bg-emerald-900/20 border border-emerald-600/30 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-emerald-300">Update Available</h4>
-                  <p className="text-sm text-emerald-200/80">
-                    New version {updateInfo.latestVersion} is available
-                  </p>
-                  {updateInfo.changelog && (
-                    <p className="text-xs text-emerald-200/60 mt-1">{updateInfo.changelog}</p>
-                  )}
+              <div className="p-4 bg-emerald-900/20 border border-emerald-600/30 rounded-lg">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-emerald-300">Update Available</h4>
+                    <p className="text-sm text-emerald-200/80">
+                      New version {updateInfo.latestVersion} is available
+                    </p>
+                  </div>
+                  <button
+                    onClick={performUpdate}
+                    disabled={updateStatus === 'checking' || updateStatus === 'updating'}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    {updateStatus === 'updating' ? 'Updating...' : 'Update Now'}
+                  </button>
                 </div>
-                <button
-                  onClick={performUpdate}
-                  disabled={updateStatus === 'checking' || updateStatus === 'updating'}
-                  className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  {updateStatus === 'updating' ? 'Updating...' : 'Update Now'}
-                </button>
+                
+                {updateInfo.latestCommitInfo && (
+                  <div className="bg-emerald-900/30 rounded-md p-3 mb-3">
+                    <h5 className="text-sm font-medium text-emerald-300 mb-2">Latest Commit:</h5>
+                    <div className="text-xs text-emerald-200/80 space-y-1">
+                      <p><span className="font-medium">Message:</span> {updateInfo.latestCommitInfo.message}</p>
+                      <p><span className="font-medium">Author:</span> {updateInfo.latestCommitInfo.author}</p>
+                      <p><span className="font-medium">Date:</span> {new Date(updateInfo.latestCommitInfo.date).toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {updateInfo.changelog && (
+                  <div className="bg-emerald-900/30 rounded-md p-3">
+                    <h5 className="text-sm font-medium text-emerald-300 mb-2">Recent Changes:</h5>
+                    <p className="text-xs text-emerald-200/60">{updateInfo.changelog}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -280,9 +297,10 @@ export default function PlatformUpdate() {
               <div className="text-orange-200/80 space-y-2 text-sm">
                 <p>• Platform updates may require a few minutes to complete</p>
                 <p>• Your application will be briefly unavailable during updates</p>
+                <p>• <strong>Database backup is created automatically</strong> before each update</p>
                 <p>• Docker containers will be restarted automatically</p>
                 <p>• Database migrations will be handled automatically if needed</p>
-                <p>• Always backup your data before major updates</p>
+                <p>• Last 10 database backups are kept in <code>data/backups/</code></p>
               </div>
             </div>
           </div>

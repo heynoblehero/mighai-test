@@ -38,10 +38,39 @@ export default async function handler(req, res) {
       console.log('Could not get deployment time');
     }
 
+    // Get latest commit message and author
+    let commitMessage = 'unknown';
+    let commitAuthor = 'unknown';
+    let branchName = 'unknown';
+    
+    try {
+      const { stdout: message } = await execAsync('git log -1 --format="%s"');
+      commitMessage = message.trim();
+    } catch (error) {
+      console.log('Could not get commit message');
+    }
+
+    try {
+      const { stdout: author } = await execAsync('git log -1 --format="%an"');
+      commitAuthor = author.trim();
+    } catch (error) {
+      console.log('Could not get commit author');
+    }
+
+    try {
+      const { stdout: branch } = await execAsync('git branch --show-current');
+      branchName = branch.trim();
+    } catch (error) {
+      console.log('Could not get branch name');
+    }
+
     return res.status(200).json({
       success: true,
       version: version,
       commitHash: commitHash,
+      commitMessage: commitMessage,
+      commitAuthor: commitAuthor,
+      branchName: branchName,
       deploymentTime: deploymentTime,
       platform: 'mighai-universal-saas',
       environment: process.env.NODE_ENV || 'development'

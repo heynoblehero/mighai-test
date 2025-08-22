@@ -95,6 +95,24 @@ async function handleCheckUpdates(req, res) {
       }
     }
 
+    // Get detailed commit info for the latest version
+    let latestCommitInfo = {};
+    if (hasUpdate) {
+      try {
+        const { stdout: message } = await execAsync(`git log -1 --format="%s" ${latestHash}`);
+        const { stdout: author } = await execAsync(`git log -1 --format="%an" ${latestHash}`);
+        const { stdout: date } = await execAsync(`git log -1 --format="%ai" ${latestHash}`);
+        
+        latestCommitInfo = {
+          message: message.trim(),
+          author: author.trim(),
+          date: new Date(date.trim()).toISOString()
+        };
+      } catch (error) {
+        latestCommitInfo = { message: 'Unable to get commit details', author: 'unknown', date: 'unknown' };
+      }
+    }
+
     return res.status(200).json({
       success: true,
       updateInfo: {
@@ -102,6 +120,7 @@ async function handleCheckUpdates(req, res) {
         currentVersion: currentHash.substring(0, 7),
         latestVersion: latestHash.substring(0, 7),
         changelog: changelog || null,
+        latestCommitInfo: hasUpdate ? latestCommitInfo : null,
         message: hasUpdate ? 'Update available' : 'Platform is up to date'
       }
     });
@@ -148,6 +167,48 @@ async function handlePerformUpdate(req, res) {
       return res.end();
     }
 
+    // Create database backup before update
+    sendLog('💾 Creating database backup...');
+    try {
+      const backupDir = path.join(process.cwd(), 'data', 'backups');
+      const fs = require('fs');
+      
+      // Ensure backup directory exists
+      if (!fs.existsSync(backupDir)) {
+        fs.mkdirSync(backupDir, { recursive: true });
+      }
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupPath = path.join(backupDir, `pre-update-${timestamp}.db`);
+      
+      // Check if database exists and backup
+      const dbPath = path.join(process.cwd(), 'site_builder.db');
+      if (fs.existsSync(dbPath)) {
+        fs.copyFileSync(dbPath, backupPath);
+        sendLog(`✅ Database backed up to: ${backupPath}`);
+        
+        // Keep only last 10 backups
+        const backups = fs.readdirSync(backupDir)
+          .filter(file => file.endsWith('.db'))
+          .map(file => ({
+            name: file,
+            time: fs.statSync(path.join(backupDir, file)).mtime
+          }))
+          .sort((a, b) => b.time - a.time);
+          
+        if (backups.length > 10) {
+          for (let i = 10; i < backups.length; i++) {
+            fs.unlinkSync(path.join(backupDir, backups[i].name));
+          }
+          sendLog(`🧹 Cleaned old backups, kept latest 10`);
+        }
+      } else {
+        sendLog('ℹ️  No database found to backup');
+      }
+    } catch (error) {
+      sendLog(`⚠️  Database backup failed: ${error.message}`);
+    }
+
     // Stash any local changes
     sendLog('💾 Stashing local changes...');
     try {
@@ -189,29 +250,88 @@ async function handlePerformUpdate(req, res) {
       sendLog('⚠️  Build step skipped or failed - will use existing build');
     }
 
-    // Restart services if we're in a Docker environment
+    // Restart services - Enhanced Docker support
     sendLog('🔄 Restarting services...');
-    try {
-      // Try to restart Docker containers if docker-compose is available
-      const dockerComposeFile = path.join(process.cwd(), 'docker-compose.prod.yml');
-      const fs = require('fs');
+    const fs = require('fs');
+    
+    // Check if we're running inside Docker
+    const isRunningInDocker = fs.existsSync('/.dockerenv') || 
+                              fs.existsSync('/proc/self/cgroup') && 
+                              fs.readFileSync('/proc/self/cgroup', 'utf8').includes('docker');
+    
+    if (isRunningInDocker) {
+      sendLog('🐳 Detected Docker environment - preparing container restart...');
       
-      if (fs.existsSync(dockerComposeFile)) {
-        await execAsync('docker-compose -f docker-compose.prod.yml restart app');
-        sendLog('✅ Docker services restarted');
-      } else {
-        sendLog('ℹ️  No docker-compose.prod.yml found, skipping container restart');
+      // Signal the host to restart the container
+      try {
+        // Create a restart signal file that the host can monitor
+        const restartSignalPath = path.join(process.cwd(), 'data', 'restart-required');
+        fs.writeFileSync(restartSignalPath, JSON.stringify({
+          timestamp: new Date().toISOString(),
+          reason: 'platform-update',
+          pid: process.pid
+        }));
+        sendLog('✅ Restart signal created for Docker host');
+        
+        // Also try to restart via docker-compose if accessible
+        const dockerComposeFiles = [
+          'docker-compose.yml',
+          'docker-compose.prod.yml'
+        ];
+        
+        for (const composeFile of dockerComposeFiles) {
+          if (fs.existsSync(path.join(process.cwd(), composeFile))) {
+            try {
+              await execAsync(`docker-compose -f ${composeFile} restart app`);
+              sendLog(`✅ Container restarted via ${composeFile}`);
+              break;
+            } catch (error) {
+              sendLog(`⚠️  Failed to restart via ${composeFile}: ${error.message}`);
+            }
+          }
+        }
+        
+        // If compose restart failed, try direct container restart
+        try {
+          const containerName = process.env.HOSTNAME || 'saas-app';
+          await execAsync(`docker restart ${containerName}`);
+          sendLog('✅ Container restarted directly');
+        } catch (error) {
+          sendLog(`ℹ️  Direct container restart not available: ${error.message}`);
+        }
+        
+      } catch (error) {
+        sendLog(`⚠️  Docker restart preparation failed: ${error.message}`);
       }
-    } catch (error) {
-      sendLog('⚠️  Could not restart Docker services: ' + error.message);
-    }
+    } else {
+      // Non-Docker environment
+      try {
+        // Try to restart Docker containers if docker-compose is available
+        const dockerComposeFile = path.join(process.cwd(), 'docker-compose.prod.yml');
+        
+        if (fs.existsSync(dockerComposeFile)) {
+          await execAsync('docker-compose -f docker-compose.prod.yml restart app');
+          sendLog('✅ Docker services restarted');
+        } else {
+          sendLog('ℹ️  No docker-compose.prod.yml found, trying other compose files');
+          
+          // Try other compose files
+          if (fs.existsSync('docker-compose.yml')) {
+            await execAsync('docker-compose restart app');
+            sendLog('✅ Docker services restarted via docker-compose.yml');
+          }
+        }
+      } catch (error) {
+        sendLog(`⚠️  Could not restart Docker services: ${error.message}`);
+      }
 
-    // Try to restart PM2 if available
-    try {
-      await execAsync('pm2 reload all');
-      sendLog('✅ PM2 processes reloaded');
-    } catch (error) {
-      sendLog('ℹ️  PM2 not available, skipping process reload');
+      // Try to restart PM2 if available
+      try {
+        await execAsync('pm2 reload all');
+        sendLog('✅ PM2 processes reloaded');
+      } catch (error) {
+        sendLog('ℹ️  PM2 not available, skipping process reload');
+      }
     }
 
     sendLog('🎉 Platform update completed successfully!');
