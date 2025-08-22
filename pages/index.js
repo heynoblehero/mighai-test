@@ -5,40 +5,58 @@ export default function Home() {
   const [currentFeature, setCurrentFeature] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [customLandingPage, setCustomLandingPage] = useState(null);
+  const [isClient, setIsClient] = useState(false);
+  const [pageReady, setPageReady] = useState(false);
 
   // Check for custom landing page
   useEffect(() => {
+    setIsClient(true);
+    
     const checkCustomLandingPage = async () => {
       try {
         const response = await fetch('/api/reserved-page-render?pageType=landing-page');
         if (response.ok) {
           const html = await response.text();
           setCustomLandingPage(html);
-          return;
         }
       } catch (error) {
         console.log('No custom landing page found, using default');
       }
+      setPageReady(true);
     };
     
     checkCustomLandingPage();
   }, []);
 
+  // Don't render anything until we know what to show (prevents hydration mismatch)
+  if (!pageReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-4">🚀</div>
+          <div className="text-xl font-semibold text-gray-700">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   // If custom landing page exists, render it
-  if (customLandingPage) {
+  if (customLandingPage && isClient) {
     return <div dangerouslySetInnerHTML={{ __html: customLandingPage }} />;
   }
 
   useEffect(() => {
-    setIsVisible(true);
-    
-    // Auto-rotate features
-    const interval = setInterval(() => {
-      setCurrentFeature((prev) => (prev + 1) % 3);
-    }, 4000);
-    
-    return () => clearInterval(interval);
-  }, []);
+    if (isClient && pageReady) {
+      setIsVisible(true);
+      
+      // Auto-rotate features only on client side
+      const interval = setInterval(() => {
+        setCurrentFeature((prev) => (prev + 1) % 3);
+      }, 4000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isClient, pageReady]);
 
   const features = [
     {
