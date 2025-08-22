@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../../components/AdminLayout';
 
@@ -22,13 +22,9 @@ export default function EditPage() {
   const [error, setError] = useState('');
   const [mode, setMode] = useState('visual'); // 'visual' or 'code'
 
-  useEffect(() => {
-    if (id) {
-      fetchPage();
-    }
-  }, [id]);
-
-  const fetchPage = async () => {
+  const fetchPage = useCallback(async () => {
+    if (!id) return;
+    
     try {
       const response = await fetch(`/api/pages/${id}`);
       if (response.ok) {
@@ -43,7 +39,11 @@ export default function EditPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchPage();
+  }, [fetchPage]);
 
   const savePage = async () => {
     if (!pageData.title || !pageData.slug || !pageData.html_content) {
