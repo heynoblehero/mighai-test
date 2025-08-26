@@ -2,34 +2,23 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const [currentFeature, setCurrentFeature] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const [customLandingPage, setCustomLandingPage] = useState(null);
-  const [isClient, setIsClient] = useState(false);
-  const [pageReady, setPageReady] = useState(false);
 
-  // Check for custom landing page
+  // Only run on client side to prevent hydration issues
   useEffect(() => {
-    setIsClient(true);
+    setMounted(true);
     
-    const checkCustomLandingPage = async () => {
-      try {
-        const response = await fetch('/api/reserved-page-render?pageType=landing-page');
-        if (response.ok) {
-          const html = await response.text();
-          setCustomLandingPage(html);
-        }
-      } catch (error) {
-        console.log('No custom landing page found, using default');
-      }
-      setPageReady(true);
-    };
+    // Auto-rotate features
+    const interval = setInterval(() => {
+      setCurrentFeature((prev) => (prev + 1) % 3);
+    }, 4000);
     
-    checkCustomLandingPage();
+    return () => clearInterval(interval);
   }, []);
 
-  // Don't render anything until we know what to show (prevents hydration mismatch)
-  if (!pageReady) {
+  // Prevent hydration mismatch
+  if (!mounted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -39,24 +28,6 @@ export default function Home() {
       </div>
     );
   }
-
-  // If custom landing page exists, render it
-  if (customLandingPage && isClient) {
-    return <div dangerouslySetInnerHTML={{ __html: customLandingPage }} />;
-  }
-
-  useEffect(() => {
-    if (isClient && pageReady) {
-      setIsVisible(true);
-      
-      // Auto-rotate features only on client side
-      const interval = setInterval(() => {
-        setCurrentFeature((prev) => (prev + 1) % 3);
-      }, 4000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [isClient, pageReady]);
 
   const features = [
     {
@@ -162,28 +133,19 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 pt-16 pb-32">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animate-delay-1000"></div>
-          <div className="absolute top-40 right-10 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse animate-delay-2000"></div>
-          <div className="absolute -bottom-8 left-1/2 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl animate-pulse"></div>
-        </div>
-
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
-              <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
-                Launch Your
-                <span className="text-gradient-primary block">SaaS Platform</span>
-                <span className="text-4xl md:text-6xl">in Minutes ⚡</span>
-              </h1>
-              <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-                Complete SaaS infrastructure with API workers, payment processing, 
-                user management, and analytics. <strong>No coding required.</strong>
-              </p>
-            </div>
+            <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 mb-6 leading-tight">
+              Launch Your
+              <span className="text-gradient-primary block">SaaS Platform</span>
+              <span className="text-4xl md:text-6xl">in Minutes ⚡</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Complete SaaS infrastructure with API workers, payment processing, 
+              user management, and analytics. <strong>No coding required.</strong>
+            </p>
 
-            <div className={`flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
               <Link href="/admin/login" className="btn btn-primary btn-lg hover-glow">
                 🚀 Start Building Now
               </Link>
@@ -193,7 +155,7 @@ export default function Home() {
             </div>
 
             {/* Trust Indicators */}
-            <div className={`transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
+            <div>
               <p className="text-sm text-gray-500 mb-6">Trusted by 50+ successful SaaS founders</p>
               <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
                 <div className="text-2xl">🏢 TechCorp</div>
@@ -240,11 +202,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <div
-                key={index}
-                className={`text-center animate-fade-in-up`}
-                style={{ animationDelay: `${index * 200}ms` }}
-              >
+              <div key={index} className="text-center">
                 <div className="text-4xl font-bold text-gradient-primary mb-2">{stat.value}</div>
                 <div className="text-gray-600 font-medium">{stat.label}</div>
                 <div className="text-sm text-gray-500">{stat.suffix}</div>
@@ -274,11 +232,7 @@ export default function Home() {
               { icon: "🔒", title: "Security First", description: "Built-in security features and best practices implementation" },
               { icon: "⚡", title: "Real-time Updates", description: "Live notifications and real-time data synchronization" }
             ].map((feature, index) => (
-              <div
-                key={index}
-                className={`card card-body hover-lift animate-fade-in-up`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
+              <div key={index} className="card card-body hover-lift">
                 <div className="text-4xl mb-4">{feature.icon}</div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
                 <p className="text-gray-600">{feature.description}</p>
@@ -298,11 +252,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div
-                key={index}
-                className={`card card-body animate-fade-in-up hover-lift`}
-                style={{ animationDelay: `${index * 200}ms` }}
-              >
+              <div key={index} className="card card-body hover-lift">
                 <div className="text-4xl mb-4 text-center">{testimonial.avatar}</div>
                 <p className="text-gray-700 mb-6 italic">"{testimonial.content}"</p>
                 <div className="text-center">
@@ -327,11 +277,9 @@ export default function Home() {
             {pricingPlans.map((plan, index) => (
               <div
                 key={index}
-                className={`
-                  card hover-lift animate-fade-in-up relative overflow-hidden
-                  ${plan.popular ? 'ring-2 ring-blue-500 scale-105 shadow-xl' : ''}
-                `}
-                style={{ animationDelay: `${index * 200}ms` }}
+                className={`card hover-lift relative overflow-hidden ${
+                  plan.popular ? 'ring-2 ring-blue-500 scale-105 shadow-xl' : ''
+                }`}
               >
                 {plan.popular && (
                   <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center py-2 text-sm font-medium">
