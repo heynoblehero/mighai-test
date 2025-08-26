@@ -290,5 +290,12 @@
     "estimated_cost": 0.021435,
     "month": "2025-08",
     "type": "reserved-page-generation"
+  },
+  {
+    "timestamp": "2025-08-25T18:52:45.281Z",
+    "tokens_used": 1605,
+    "estimated_cost": 0.024075,
+    "month": "2025-08",
+    "type": "reserved-page-generation"
   }
 ]

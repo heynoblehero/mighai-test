@@ -46,7 +46,7 @@ const navigation = [
   {
     name: 'Development',
     items: [
-      { name: 'API Workers', href: '/admin/api-worker-config', icon: 'code', current: false },
+      { name: 'Backend Design', href: '/admin/backend-design', icon: 'cpu', current: false, badge: 'AI' },
       { name: 'Integrations', href: '/admin/integrations', icon: 'zap', current: false },
     ]
   },
@@ -192,6 +192,11 @@ const icons = {
   'message-square': (
     <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" />
+    </svg>
+  ),
+  'cpu': (
+    <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
     </svg>
   ),
 };
