@@ -14,7 +14,7 @@ export default function OnboardingProgress({ currentStep = 0, totalSteps = 6, co
   const steps = [
     { id: 0, title: 'Welcome', icon: '👋', description: 'Get started with your SaaS' },
     { id: 1, title: 'Basic Setup', icon: '⚙️', description: 'Configure your application' },
-    { id: 2, title: 'API Configuration', icon: '🔗', description: 'Set up your API worker' },
+    { id: 2, title: 'Backend Configuration', icon: '🔗', description: 'Set up your backend design' },
     { id: 3, title: 'Plan Creation', icon: '💳', description: 'Create subscription plans' },
     { id: 4, title: 'First Page', icon: '📄', description: 'Build your landing page' },
     { id: 5, title: 'Launch Ready', icon: '🚀', description: 'You\'re ready to go!' }

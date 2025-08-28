@@ -367,7 +367,7 @@ export default function SubscriberDashboard({ useCustomContent, customContentHtm
           ) : (
             <div className="border rounded-lg p-4">
               <h5 className="font-semibold text-gray-900 mb-2">Service Available</h5>
-              <p className="text-sm text-gray-600 mb-3">Create a new task to process your request through our API worker service.</p>
+              <p className="text-sm text-gray-600 mb-3">Create a new task to process your request through our backend service.</p>
               
               <div className="mb-3">
                 <span className="text-xs text-gray-500">Required inputs:</span>

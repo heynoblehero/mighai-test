@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 
 export default function BackendDesign() {
-  const [approach, setApproach] = useState('api-workers'); // 'api-workers' or 'endpoint-creator'
+  const [approach, setApproach] = useState('api-workers'); // 'api-workers' or 'ai-endpoint-creator'
   const [mode, setMode] = useState('manual'); // 'manual' or 'ai' (for API Workers)
   const [config, setConfig] = useState({
     api_endpoint: '',
@@ -546,8 +546,12 @@ export default function BackendDesign() {
               </span>
             </h1>
             <p className="text-slate-400 mt-1 text-lg">
-              Choose your approach to building powerful backend functionality
+              Dual-mode architecture: Configure workers manually OR let AI create endpoints through conversation
             </p>
+            <div className="mt-3 text-xs text-slate-500 space-y-1">
+              <div>🔧 <strong>Backend Workers:</strong> Configure external APIs + manual/AI-assisted worker creation</div>
+              <div>🤖 <strong>AI Endpoint Creator:</strong> Pure conversational endpoint design (no configuration)</div>
+            </div>
           </div>
           
           {/* Approach Switcher */}
@@ -560,14 +564,14 @@ export default function BackendDesign() {
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-300 hover:text-white hover:bg-slate-600'
                 }`}
-                title="Configure API workers for external endpoints"
+                title="Configure backend workers for external endpoints and AI integration"
               >
-                🔧 API Workers
+                🔧 Backend Workers
               </button>
               <button
-                onClick={() => setApproach('endpoint-creator')}
+                onClick={() => setApproach('ai-endpoint-creator')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                  approach === 'endpoint-creator'
+                  approach === 'ai-endpoint-creator'
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'text-slate-300 hover:text-white hover:bg-slate-600'
                 }`}
@@ -577,19 +581,19 @@ export default function BackendDesign() {
               </button>
             </div>
             <p className="text-xs text-slate-500 italic">
-              {approach === 'api-workers' ? 'Traditional API configuration' : 'Conversational endpoint creation'}
+              {approach === 'api-workers' ? 'Manual & AI-assisted backend workers' : 'Conversational endpoint creation'}
             </p>
           </div>
         </div>
 
         {approach === 'api-workers' ? (
-          // API Workers Section
+          // Backend Workers Section
           <div className="space-y-6">
-            {/* API Workers Header */}
+            {/* Backend Workers Header */}
             <div className="bg-emerald-900/20 border border-emerald-600/30 rounded-xl p-4">
               <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-semibold text-emerald-300">🔧 API Workers</h2>
-                {/* Mode Switcher for API Workers */}
+                <h2 className="text-xl font-semibold text-emerald-300">🔧 Backend Workers</h2>
+                {/* Mode Switcher for Backend Workers */}
                 <div className="flex bg-slate-700 rounded-lg p-1">
                   <button
                     onClick={() => setMode('manual')}
@@ -633,7 +637,7 @@ export default function BackendDesign() {
         {mode === 'manual' ? (
           <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-200">Manual API Worker Configuration</h3>
+              <h3 className="text-lg font-semibold text-slate-200">Manual Backend Worker Configuration</h3>
             </div>
             <div className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -1202,13 +1206,13 @@ export default function BackendDesign() {
         )}
           </div>
         ) : (
-          // AI Endpoint Creator Section
+          // AI Endpoint Creator Section - Dual Mode Architecture Option 2
           <div className="space-y-6">
             {/* AI Endpoint Creator Header */}
             <div className="bg-blue-900/20 border border-blue-600/30 rounded-xl p-4">
               <h2 className="text-xl font-semibold text-blue-300 mb-2">🤖 AI Endpoint Creator</h2>
               <p className="text-blue-200 text-sm">
-                Have a conversation with AI to design and create complete backend endpoints with custom logic
+                Talk to AI in natural language to create complete backend endpoints - no configuration needed, just describe what you want
               </p>
             </div>
 
@@ -1227,9 +1231,32 @@ export default function BackendDesign() {
                 <div className="text-center py-16">
                   <div className="text-6xl mb-6">🚀✨</div>
                   <h4 className="text-2xl font-bold text-slate-200 mb-4">Revolutionary Endpoint Creation</h4>
-                  <p className="text-slate-300 text-lg mb-8 max-w-2xl mx-auto">
+                  <p className="text-slate-300 text-lg mb-4 max-w-2xl mx-auto">
                     Talk naturally with our AI to design complex backend endpoints. No technical knowledge required - just describe what you want your API to do!
                   </p>
+                  <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30 rounded-lg p-4 mb-8 max-w-3xl mx-auto text-left">
+                    <h5 className="text-sm font-semibold text-purple-300 mb-2">🔄 How This Differs From Backend Workers:</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+                      <div>
+                        <div className="text-emerald-300 font-medium mb-1">🔧 Backend Workers:</div>
+                        <ul className="space-y-1 text-slate-400">
+                          <li>• Configure external API endpoints</li>
+                          <li>• Define request/response templates</li>
+                          <li>• Set up input fields & OAuth</li>
+                          <li>• Manual or AI-assisted creation</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <div className="text-blue-300 font-medium mb-1">🤖 AI Endpoint Creator:</div>
+                        <ul className="space-y-1 text-slate-400">
+                          <li>• Describe functionality in plain English</li>
+                          <li>• AI generates complete endpoints</li>
+                          <li>• No configuration or setup required</li>
+                          <li>• Pure conversational interface</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-left max-w-4xl mx-auto">
                     <div className="bg-slate-700/50 rounded-xl p-6">

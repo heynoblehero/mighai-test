@@ -50,7 +50,7 @@ export default function ContactPage() {
                   <h4 className="font-medium text-gray-900 mb-1">How do I get started?</h4>
                   <p className="text-gray-600 text-sm">
                     Simply sign up for an account and choose the plan that best fits your needs. 
-                    You'll have access to our API worker and dashboard immediately.
+                    You'll have access to our backend design system and dashboard immediately.
                   </p>
                 </div>
                 <div>
