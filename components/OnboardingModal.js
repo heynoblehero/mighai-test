@@ -19,7 +19,7 @@ export default function OnboardingModal({ isOpen, onClose, currentStep = 0, onSt
             <ul className="space-y-2 text-sm text-emerald-800">
               <li className="flex items-center">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
-                Configure your API worker for customer requests
+                Configure your backend design for customer requests
               </li>
               <li className="flex items-center">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
@@ -46,7 +46,7 @@ export default function OnboardingModal({ isOpen, onClose, currentStep = 0, onSt
     },
     {
       id: 1,
-      title: "Configure Your API Worker ⚙️",
+      title: "Configure Your Backend Design ⚙️",
       description: "Set up the core functionality that will handle customer requests. This is the heart of your SaaS platform.",
       icon: "🔗",
       content: (
@@ -85,8 +85,8 @@ export default function OnboardingModal({ isOpen, onClose, currentStep = 0, onSt
           </div>
         </div>
       ),
-      actionText: "Configure API Worker",
-      actionLink: "/admin/api-worker-config",
+      actionText: "Configure Backend Design",
+      actionLink: "/admin/backend-design",
       skipEnabled: true
     },
     {
@@ -181,7 +181,7 @@ export default function OnboardingModal({ isOpen, onClose, currentStep = 0, onSt
             <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
               <h5 className="font-semibold text-emerald-800 mb-2">✅ Pre-Launch Checklist:</h5>
               <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• API worker responds correctly</li>
+                <li>• Backend design responds correctly</li>
                 <li>• Payment processing works</li>
                 <li>• Landing page looks great</li>
                 <li>• User dashboard functions</li>

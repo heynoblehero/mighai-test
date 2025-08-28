@@ -10,7 +10,7 @@ export default function OnboardingOverlay({ onComplete, onDismiss }) {
   const steps = [
     {
       id: 1,
-      title: "Configure API Worker",
+      title: "Configure Backend Design",
       shortDesc: "Set up your backend API endpoint",
       details: [
         "Connect your API endpoint URL",
@@ -19,7 +19,7 @@ export default function OnboardingOverlay({ onComplete, onDismiss }) {
         "Test API connectivity and responses"
       ],
       action: "Configure API",
-      link: "/admin/api-worker-config",
+      link: "/admin/backend-design",
       icon: "⚙️",
       estimatedTime: "5-10 minutes"
     },

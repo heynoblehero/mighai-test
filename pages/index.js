@@ -33,7 +33,7 @@ export default function Home() {
     {
       icon: "🚀",
       title: "Launch Your SaaS in Minutes",
-      description: "Complete platform with API worker, payments, and user management"
+      description: "Complete platform with backend design system, payments, and user management"
     },
     {
       icon: "⚡",
@@ -141,7 +141,7 @@ export default function Home() {
               <span className="text-4xl md:text-6xl">in Minutes ⚡</span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Complete SaaS infrastructure with API workers, payment processing, 
+              Complete SaaS infrastructure with backend design system, payment processing, 
               user management, and analytics. <strong>No coding required.</strong>
             </p>
 
@@ -222,7 +222,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { icon: "🔗", title: "API Worker System", description: "Connect to any API endpoint with dynamic templates and request handling" },
+              { icon: "🔗", title: "Backend Design System", description: "Dual-mode architecture: traditional workers or conversational AI endpoint creation" },
               { icon: "💳", title: "Payment Processing", description: "Lemon Squeezy integration with subscription management and billing automation" },
               { icon: "👥", title: "User Management", description: "Complete authentication system with role-based access control" },
               { icon: "📊", title: "Analytics Dashboard", description: "Real-time metrics, user behavior tracking, and revenue analytics" },
