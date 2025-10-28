@@ -80,7 +80,10 @@ const RESERVED_PAGE_SLUGS = [
 ];
 
 // Database setup
-const db = new sqlite3.Database('./site_builder.db');
+const dbPath = process.env.NODE_ENV === 'production'
+  ? '/tmp/site_builder.db'
+  : '/home/ishaan/Projects/mighai (copy)/site_builder.db';
+const db = new sqlite3.Database(dbPath);
 
 // Initialize database tables
 db.serialize(() => {
@@ -154,6 +157,15 @@ db.serialize(() => {
   const defaultPassword = bcrypt.hashSync('admin123', 10);
   db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
           VALUES ('admin', 'admin@example.com', ?, 'admin')`, [defaultPassword]);
+
+  // Create test subscriber users if not exists
+  const testPassword = bcrypt.hashSync('test123', 10);
+  db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
+          VALUES ('testuser', 'test@example.com', ?, 'subscriber')`, [testPassword]);
+  
+  const testPassword2 = bcrypt.hashSync('demo123', 10);
+  db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
+          VALUES ('demouser', 'demo@example.com', ?, 'subscriber')`, [testPassword2]);
 
   // Create default free plan
   db.run(`INSERT OR IGNORE INTO plans (name, api_limit, page_view_limit, price, is_active) 
@@ -313,13 +325,15 @@ db.serialize(() => {
   // API Worker Configuration table (single configuration)
   db.run(`CREATE TABLE IF NOT EXISTS api_worker_config (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    api_endpoint TEXT NOT NULL,
+    api_endpoint TEXT,
     request_method TEXT DEFAULT 'POST',
     request_headers TEXT,
-    request_body_template TEXT NOT NULL,
+    request_body_template TEXT,
     input_fields TEXT NOT NULL,
     is_active BOOLEAN DEFAULT true,
     created_by INTEGER,
+    generated_worker_id INTEGER,
+    generated_endpoint TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users (id)
@@ -329,6 +343,19 @@ db.serialize(() => {
   db.run(`ALTER TABLE api_worker_config ADD COLUMN required_oauth_services TEXT DEFAULT '[]'`, (err) => {
     if (err && !err.message.includes('duplicate column name')) {
       console.error('Error adding required_oauth_services column:', err.message);
+    }
+  });
+
+  // Add AI-generated endpoint support columns
+  db.run(`ALTER TABLE api_worker_config ADD COLUMN generated_worker_id INTEGER`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding generated_worker_id column:', err.message);
+    }
+  });
+
+  db.run(`ALTER TABLE api_worker_config ADD COLUMN generated_endpoint TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding generated_endpoint column:', err.message);
     }
   });
 
@@ -641,6 +668,88 @@ db.serialize(() => {
     is_subscriber BOOLEAN DEFAULT true,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id)
+  )`);
+
+  // Logic Pages System - Advanced dynamic page generator
+  db.run(`CREATE TABLE IF NOT EXISTS logic_pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    description TEXT,
+    access_level TEXT DEFAULT 'public' CHECK (access_level IN ('public', 'subscriber')),
+    frontend_config TEXT NOT NULL, -- JSON: layout, styling, components
+    backend_config TEXT NOT NULL,  -- JSON: AI prompts, processing logic
+    result_config TEXT NOT NULL,   -- JSON: result display settings
+    is_active BOOLEAN DEFAULT true,
+    store_results BOOLEAN DEFAULT true,
+    store_analytics BOOLEAN DEFAULT true,
+    max_executions_per_user INTEGER DEFAULT 10,
+    created_by INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users (id)
+  )`);
+
+  // Input fields configuration for logic pages
+  db.run(`CREATE TABLE IF NOT EXISTS logic_page_fields (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logic_page_id INTEGER NOT NULL,
+    field_name TEXT NOT NULL,
+    field_label TEXT NOT NULL,
+    field_type TEXT NOT NULL CHECK (field_type IN ('text', 'textarea', 'email', 'number', 'select', 'file', 'checkbox', 'radio')),
+    field_options TEXT, -- JSON: for select/radio options, validation rules
+    is_required BOOLEAN DEFAULT false,
+    placeholder TEXT,
+    help_text TEXT,
+    order_index INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
+  )`);
+
+  // Store execution results and analytics
+  db.run(`CREATE TABLE IF NOT EXISTS logic_page_executions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logic_page_id INTEGER NOT NULL,
+    user_id INTEGER,
+    session_id TEXT, -- For anonymous users
+    input_data TEXT NOT NULL, -- JSON: user inputs
+    output_data TEXT NOT NULL, -- JSON: AI/processing results
+    processing_time INTEGER, -- milliseconds
+    tokens_used INTEGER DEFAULT 0,
+    cost_estimate DECIMAL(10,4) DEFAULT 0.0000,
+    status TEXT DEFAULT 'success' CHECK (status IN ('success', 'error', 'timeout')),
+    error_message TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+  )`);
+
+  // Version history for logic pages
+  db.run(`CREATE TABLE IF NOT EXISTS logic_page_versions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logic_page_id INTEGER NOT NULL,
+    version_number INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    frontend_config TEXT NOT NULL,
+    backend_config TEXT NOT NULL,
+    result_config TEXT NOT NULL,
+    change_summary TEXT,
+    created_by INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by) REFERENCES users (id),
+    UNIQUE(logic_page_id, version_number)
+  )`);
+
+  // Tags system for logic pages
+  db.run(`CREATE TABLE IF NOT EXISTS logic_page_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logic_page_id INTEGER NOT NULL,
+    tag_name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
   )`);
 
   // Add new columns to existing support_messages table if they don't exist
@@ -1011,15 +1120,18 @@ nextApp.prepare().then(() => {
 
   // Get API Worker configuration for customers (only if active)
   server.get('/api/api-worker-config/public', requireSubscriberAuth, (req, res) => {
-    db.get('SELECT api_endpoint, input_fields, is_active FROM api_worker_config WHERE id = 1 AND is_active = 1', (err, config) => {
+    db.get('SELECT input_fields, is_active, generated_endpoint, generated_worker_id FROM api_worker_config WHERE id = 1 AND is_active = 1', (err, config) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!config) {
-        return res.json({ available: false, message: 'Service is not currently available' });
+        return res.json({ available: false, message: 'No AI-powered services are currently available' });
       }
       
       res.json({
         available: true,
-        input_fields: JSON.parse(config.input_fields || '[]')
+        input_fields: JSON.parse(config.input_fields || '[]'),
+        service_type: 'ai_generated',
+        generated_endpoint: config.generated_endpoint,
+        generated_worker_id: config.generated_worker_id
       });
     });
   });
@@ -1133,8 +1245,28 @@ nextApp.prepare().then(() => {
               const taskDbId = this.lastID;
 
               try {
-                // Execute API Worker request
-                const result = await executeAPIWorkerRequest(config, input_data);
+                // Execute AI-generated endpoint request
+                let result;
+                if (config.generated_endpoint) {
+                  // Use AI-generated endpoint
+                  const response = await fetch(`http://localhost:${process.env.PORT || 3000}${config.generated_endpoint}`, {
+                    method: config.request_method || 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${userId}`
+                    },
+                    body: JSON.stringify(input_data)
+                  });
+
+                  const responseData = await response.json();
+                  result = {
+                    data: responseData,
+                    execution_time: Date.now() - Date.now() // Simplified timing
+                  };
+                } else {
+                  // Fallback to old API worker if still configured
+                  result = await executeAPIWorkerRequest(config, input_data);
+                }
                 
                 // Update task record with success
                 db.run(`UPDATE customer_tasks SET 
@@ -2141,50 +2273,71 @@ nextApp.prepare().then(() => {
       if (err) return res.status(500).json({ error: err.message });
       if (!config) {
         return res.json({ 
-          api_endpoint: '', 
           request_method: 'POST',
           request_headers: '{}',
           request_body_template: '{}',
           input_fields: '[]', 
-          is_active: false 
+          required_oauth_services: '[]',
+          is_active: false,
+          service_type: 'ai_generated'
         });
       }
       res.json({
         ...config,
         request_headers: JSON.parse(config.request_headers || '{}'),
-        input_fields: JSON.parse(config.input_fields || '[]')
+        input_fields: JSON.parse(config.input_fields || '[]'),
+        required_oauth_services: JSON.parse(config.required_oauth_services || '[]'),
+        service_type: 'ai_generated'
       });
     });
   });
 
   server.post('/api/api-worker-config', requireAuth, (req, res) => {
-    const { api_endpoint, request_method, request_headers, request_body_template, input_fields, required_oauth_services, is_active } = req.body;
+    const { request_method, request_headers, request_body_template, input_fields, required_oauth_services, is_active, generated_worker_id, generated_endpoint } = req.body;
     
-    if (!api_endpoint || !request_body_template || !input_fields) {
-      return res.status(400).json({ error: 'API endpoint, request body template, and input fields are required' });
+    if (!input_fields) {
+      return res.status(400).json({ error: 'Input fields configuration is required for AI-generated endpoints' });
     }
 
-    db.run(`INSERT OR REPLACE INTO api_worker_config (id, api_endpoint, request_method, request_headers, request_body_template, input_fields, required_oauth_services, is_active, created_by, updated_at) 
-            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [api_endpoint, request_method || 'POST', JSON.stringify(request_headers || {}), request_body_template, JSON.stringify(input_fields), JSON.stringify(required_oauth_services || []), is_active !== false, req.user.id],
+    db.run(`INSERT OR REPLACE INTO api_worker_config (id, request_method, request_headers, request_body_template, input_fields, required_oauth_services, is_active, generated_worker_id, generated_endpoint, created_by, updated_at) 
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [request_method || 'POST', JSON.stringify(request_headers || {}), request_body_template || '{}', JSON.stringify(input_fields), JSON.stringify(required_oauth_services || []), is_active !== false, generated_worker_id, generated_endpoint, req.user.id],
       function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        res.json({ message: 'API Worker configuration saved successfully' });
+        res.json({ message: 'AI-powered backend configuration saved successfully' });
       });
   });
 
-  // Test API Worker endpoint
+  // Test AI-generated endpoint
   server.post('/api/api-worker-config/test', requireAuth, async (req, res) => {
     const { test_data } = req.body;
     
     db.get('SELECT * FROM api_worker_config WHERE id = 1', async (err, config) => {
       if (err) return res.status(500).json({ error: err.message });
-      if (!config) return res.status(404).json({ error: 'API Worker configuration not found' });
+      if (!config) return res.status(404).json({ error: 'Backend configuration not found' });
 
       try {
+        if (!config.generated_endpoint) {
+          return res.json({ 
+            success: false, 
+            message: 'No AI-generated endpoint available. Please generate an endpoint first using the AI generation feature.' 
+          });
+        }
+
         const testPayload = test_data || { prompt: 'Test from admin panel' };
-        const result = await executeAPIWorkerRequest(config, testPayload);
-        res.json({ success: true, result });
+        
+        // Test the generated endpoint directly
+        const response = await fetch(`http://localhost:${process.env.PORT || 3000}${config.generated_endpoint}`, {
+          method: config.request_method || 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${req.user.id}` // Simulate authenticated request
+          },
+          body: JSON.stringify(testPayload)
+        });
+
+        const result = await response.json();
+        res.json({ success: response.ok, result, status: response.status });
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
@@ -2266,13 +2419,22 @@ nextApp.prepare().then(() => {
 
   // Secure execution environment for AI-generated code
   async function executeAIWorkerSecurely(worker, req, res) {
+    console.log('\n🔒 === SECURE AI WORKER EXECUTION ===');
+    console.log('🆔 Worker ID:', worker.id);
+    console.log('📝 Worker Name:', worker.workerName);
+    console.log('⏱️  Timeout:', 30000, 'ms');
+    
     const startTime = Date.now();
     const timeoutMs = 30000; // 30 second timeout
     
     try {
+      console.log('🏗️  Creating isolated execution context...');
       // Create isolated execution context
       const isolatedContext = createIsolatedContext(worker, req);
+      console.log('✅ Isolated context created');
+      console.log('📋 Context keys:', Object.keys(isolatedContext));
       
+      console.log('🚀 Starting code execution with timeout...');
       // Execute with timeout
       const result = await Promise.race([
         executeWorkerCode(isolatedContext),
@@ -2281,13 +2443,24 @@ nextApp.prepare().then(() => {
         )
       ]);
       
+      const executionTime = Date.now() - startTime;
+      console.log('✅ Execution completed successfully in', executionTime, 'ms');
+      console.log('📊 Result type:', typeof result);
+      console.log('📄 Result preview:', JSON.stringify(result).substring(0, 100) + '...');
+      
       // Log successful execution
-      logAIWorkerExecution(worker.id, req.user?.id, 'success', Date.now() - startTime);
+      logAIWorkerExecution(worker.id, req.user?.id, 'success', executionTime);
       
       return result;
     } catch (error) {
+      const executionTime = Date.now() - startTime;
+      console.log('❌ Execution failed after', executionTime, 'ms');
+      console.log('🚨 Error in secure execution:', error.message);
+      console.log('🔍 Error stack:', error.stack);
+      
       // Log failed execution
-      logAIWorkerExecution(worker.id, req.user?.id, 'error', Date.now() - startTime, error.message);
+      logAIWorkerExecution(worker.id, req.user?.id, 'error', executionTime, error.message);
+      console.log('=== SECURE EXECUTION FAILED ===\n');
       throw error;
     }
   }
@@ -2361,21 +2534,35 @@ nextApp.prepare().then(() => {
 
   // Execute worker code in isolated environment
   async function executeWorkerCode(context) {
+    console.log('\n⚙️  === EXECUTING WORKER CODE ===');
+    console.log('🏗️  Context input:', JSON.stringify(context.input).substring(0, 200) + '...');
+    console.log('📝 Generated code length:', context.generatedCode?.length, 'characters');
+    
     // This is a simplified implementation
     // In production, you'd use a proper sandboxing solution like vm2 or worker_threads
     
     try {
+      console.log('🔄 Starting mock execution...');
+      
       // For now, return a mock response
       // The actual AI-generated code would be evaluated here in a secure sandbox
-      return {
+      const result = {
         success: true,
         data: {
           message: 'AI worker executed successfully',
           input: context.input,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          mock: true,
+          note: 'This is a mock response. In production, the AI-generated code would be executed here in a secure sandbox.'
         }
       };
+      
+      console.log('✅ Mock execution completed');
+      console.log('📤 Mock result:', JSON.stringify(result).substring(0, 150) + '...');
+      
+      return result;
     } catch (error) {
+      console.log('❌ Worker execution failed:', error.message);
       throw new Error(`Worker execution failed: ${error.message}`);
     }
   }
@@ -2385,20 +2572,31 @@ nextApp.prepare().then(() => {
 
   // AI Worker Code Generation Function
   async function generateAIWorkerCode(params) {
-    const { workerName, routePath, httpMethod, description, prompt, context } = params;
+    const { apiKey, workerName, routePath, httpMethod, description, prompt, context } = params;
+    
+    console.log('\n🤖 === AI WORKER CODE GENERATION START ===');
+    console.log('📝 Worker Name:', workerName);
+    console.log('🛤️  Route Path:', routePath);
+    console.log('📡 HTTP Method:', httpMethod);
+    console.log('📋 Description:', description);
+    console.log('💭 Prompt:', prompt);
+    console.log('🔧 Context:', context);
+    console.log('🔑 API Key (first 20 chars):', apiKey ? apiKey.substring(0, 20) + '...' : 'NOT PROVIDED');
     
     try {
       const systemPrompt = `You are an expert backend developer that generates Node.js/Express route code based on user requirements.
 
 IMPORTANT RULES:
 1. Generate complete, production-ready Express route handler code
-2. Always include error handling and input validation
-3. Support OAuth token access for external APIs when requested
-4. Use async/await for asynchronous operations
-5. Return JSON responses with proper HTTP status codes
-6. Include helpful comments in the code
-7. Follow security best practices
-8. The route will be dynamically mounted on the server
+2. The code should make API calls to Claude (Anthropic) using the provided API key: ${apiKey}
+3. Process subscriber inputs and return AI-generated responses
+4. Always include error handling and input validation
+5. Support OAuth token access for external APIs when requested
+6. Use async/await for asynchronous operations
+7. Return JSON responses with proper HTTP status codes
+8. Include helpful comments in the code
+9. Follow security best practices
+10. The route will be dynamically mounted on the server
 
 Generate a complete Express route handler function for:
 - Route: ${routePath}
@@ -2407,10 +2605,16 @@ Generate a complete Express route handler function for:
 - Requirements: ${prompt}
 ${context ? `\nAdditional Context: ${context}` : ''}
 
-Return your response in this exact JSON format:
+The generated endpoint should:
+- Take subscriber inputs from req.body
+- Make requests to Claude API (https://api.anthropic.com/v1/messages)
+- Process and transform the AI response
+- Return personalized responses to subscribers
+
+Return your response in this exact JSON format (IMPORTANT: generatedCode must be a properly escaped JSON string, not template literals):
 {
   "success": true,
-  "generatedCode": "// Complete Express route handler code here",
+  "generatedCode": "const express = require('express');\\nconst router = express.Router();\\n\\nrouter.post('/api/endpoint', async (req, res) => {\\n  // code here\\n});\\n\\nmodule.exports = router;",
   "inputSchema": {JSON schema for expected inputs},
   "outputSchema": {JSON schema for expected outputs},
   "oauthRequirements": ["service1", "service2"],
@@ -2418,46 +2622,96 @@ Return your response in this exact JSON format:
   "estimated_cost": estimated_cost_in_dollars
 }
 
+CRITICAL: The "generatedCode" field MUST be a valid JSON string with properly escaped quotes, newlines (\\n), and other special characters. Do NOT use template literals (backticks) or unescaped quotes.
+
 Example structure for the generated code:
 server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async (req, res) => {
   try {
-    // Your generated code here
-    res.json({ success: true, data: result });
+    const axios = require('axios');
+    const { input } = req.body; // subscriber inputs
+    
+    // Make request to Claude API
+    const claudeResponse = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: input // or process input as needed
+      }]
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': '${apiKey}',
+        'anthropic-version': '2023-06-01'
+      }
+    });
+    
+    const aiResponse = claudeResponse.data.content[0].text;
+    res.json({ success: true, data: aiResponse });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });`;
 
+      console.log('\n📡 === CLAUDE API REQUEST START ===');
+      const requestBody = {
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: `Generate backend code for: ${description}\n\nDetailed requirements: ${prompt}\n${context ? `\nContext: ${context}` : ''}`
+          }
+        ]
+      };
+      
+      console.log('🌐 URL:', 'https://api.anthropic.com/v1/messages');
+      console.log('📋 Model:', requestBody.model);
+      console.log('🔢 Max Tokens:', requestBody.max_tokens);
+      console.log('💬 User Message Length:', requestBody.messages[0].content.length, 'characters');
+      console.log('📏 System Prompt Length:', systemPrompt.length, 'characters');
+      console.log('🔑 Headers:', {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey ? apiKey.substring(0, 20) + '...' : 'NOT PROVIDED',
+        'anthropic-version': '2023-06-01'
+      });
+
       const response = await axios.post(
         'https://api.anthropic.com/v1/messages',
-        {
-          model: 'claude-3-sonnet-20240229',
-          max_tokens: 4000,
-          system: systemPrompt,
-          messages: [
-            {
-              role: 'user',
-              content: `Generate backend code for: ${description}\n\nDetailed requirements: ${prompt}\n${context ? `\nContext: ${context}` : ''}`
-            }
-          ]
-        },
+        requestBody,
         {
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'x-api-key': apiKey,
             'anthropic-version': '2023-06-01'
           }
         }
       );
+      
+      console.log('\n✅ === CLAUDE API RESPONSE SUCCESS ===');
+      console.log('📊 Status:', response.status, response.statusText);
+      console.log('🔤 Response Content Length:', JSON.stringify(response.data).length, 'characters');
+      console.log('💰 Usage:', response.data.usage);
+      console.log('📝 Content Preview (first 200 chars):', response.data.content?.[0]?.text?.substring(0, 200) + '...');
 
       if (response.data && response.data.content && response.data.content[0]) {
         const aiResponse = response.data.content[0].text;
         
+        console.log('\n🔍 === PROCESSING AI RESPONSE ===');
+        console.log('📄 Full AI Response:');
+        console.log(aiResponse);
+        
         try {
+          console.log('🔄 Attempting JSON parse...');
           // Try to parse as JSON first
           const parsedResponse = JSON.parse(aiResponse);
+          console.log('✅ JSON Parse Successful!');
+          console.log('📊 Parsed Response:', parsedResponse);
+          
           if (parsedResponse.success && parsedResponse.generatedCode) {
-            return {
+            console.log('🎯 Found valid generated code structure');
+            const result = {
               success: true,
               generatedCode: parsedResponse.generatedCode,
               inputSchema: JSON.stringify(parsedResponse.inputSchema || {}),
@@ -2466,12 +2720,58 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
               tokens_used: parsedResponse.tokens_used || 1000,
               estimated_cost: parsedResponse.estimated_cost || 0.01
             };
+            console.log('✅ === AI WORKER GENERATION SUCCESS ===');
+            return result;
+          } else {
+            console.log('❌ Parsed response missing required fields (success/generatedCode)');
           }
         } catch (jsonError) {
+          console.log('❌ JSON Parse Failed:', jsonError.message);
+          console.log('🔍 Attempting to fix malformed JSON with template literals...');
+          
+          // Try to fix template literals in JSON (common issue)
+          let fixedResponse = aiResponse;
+          try {
+            // Replace template literals with properly escaped strings
+            fixedResponse = aiResponse.replace(/"generatedCode":\s*`([^`]*)`/gs, (match, code) => {
+              // Properly escape the code for JSON
+              const escapedCode = code
+                .replace(/\\/g, '\\\\')
+                .replace(/"/g, '\\"')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r')
+                .replace(/\t/g, '\\t');
+              return `"generatedCode": "${escapedCode}"`;
+            });
+            
+            console.log('🔧 Attempting to parse fixed JSON...');
+            const parsedResponse = JSON.parse(fixedResponse);
+            console.log('✅ Fixed JSON Parse Successful!');
+            
+            if (parsedResponse.success && parsedResponse.generatedCode) {
+              console.log('🎯 Found valid generated code structure (after fixing)');
+              const result = {
+                success: true,
+                generatedCode: parsedResponse.generatedCode,
+                inputSchema: JSON.stringify(parsedResponse.inputSchema || {}),
+                outputSchema: JSON.stringify(parsedResponse.outputSchema || {}),
+                oauthRequirements: JSON.stringify(parsedResponse.oauthRequirements || []),
+                tokens_used: parsedResponse.tokens_used || 1000,
+                estimated_cost: parsedResponse.estimated_cost || 0.01
+              };
+              console.log('✅ === AI WORKER GENERATION SUCCESS (FIXED JSON) ===');
+              return result;
+            }
+          } catch (fixError) {
+            console.log('❌ Fixed JSON parse also failed:', fixError.message);
+          }
+          
+          console.log('🔍 Attempting markdown code extraction...');
           // If JSON parsing fails, extract code from markdown blocks
           const codeMatch = aiResponse.match(/```(?:javascript|js)?\n([\s\S]*?)\n```/);
           if (codeMatch) {
-            return {
+            console.log('✅ Found code in markdown blocks');
+            const result = {
               success: true,
               generatedCode: codeMatch[1],
               inputSchema: '{}',
@@ -2480,17 +2780,35 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
               tokens_used: 1000,
               estimated_cost: 0.01
             };
+            console.log('✅ === AI WORKER GENERATION SUCCESS (MARKDOWN) ===');
+            return result;
+          } else {
+            console.log('❌ No code blocks found in markdown');
           }
         }
+      } else {
+        console.log('❌ Invalid response structure - missing content');
+        console.log('📋 Response data:', response.data);
       }
 
+      const error = 'Failed to generate valid code from AI response';
+      console.log('❌ === AI WORKER GENERATION FAILED ===');
+      console.log('🚨 Error:', error);
       return {
         success: false,
-        error: 'Failed to generate valid code from AI response'
+        error: error
       };
 
     } catch (error) {
-      console.error('AI code generation error:', error);
+      console.log('\n💥 === AI WORKER GENERATION ERROR ===');
+      console.error('🚨 Error Type:', error.constructor.name);
+      console.error('📝 Error Message:', error.message);
+      console.error('📊 Error Response Status:', error.response?.status);
+      console.error('📋 Error Response Headers:', error.response?.headers);
+      console.error('📄 Error Response Data:', error.response?.data);
+      console.error('🔍 Error Stack:', error.stack);
+      console.log('=== END ERROR DETAILS ===\n');
+      
       return {
         success: false,
         error: error.message || 'Failed to generate AI worker code'
@@ -2527,15 +2845,41 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
 
   // Create new AI worker
   server.post('/api/ai-workers/create', requireAuth, async (req, res) => {
+    console.log('\n🚀 === AI WORKER CREATE REQUEST ===');
+    console.log('👤 User ID:', req.user?.id);
+    console.log('📥 Request Body:', req.body);
+    console.log('🔑 API Key Present:', req.headers['x-api-key'] ? 'YES (length: ' + req.headers['x-api-key'].length + ')' : 'NO');
+    
     const { workerName, routePath, httpMethod, description, prompt, context, requireAuth: reqAuth, accessLevel, workerType } = req.body;
+    const apiKey = req.headers['x-api-key'];
+    
+    console.log('✅ Extracted Parameters:');
+    console.log('  - Worker Name:', workerName);
+    console.log('  - Route Path:', routePath);
+    console.log('  - HTTP Method:', httpMethod);
+    console.log('  - Description:', description);
+    console.log('  - Prompt Length:', prompt?.length, 'characters');
+    console.log('  - Context:', context);
+    console.log('  - Require Auth:', reqAuth);
+    console.log('  - Access Level:', accessLevel);
+    console.log('  - Worker Type:', workerType);
     
     if (!workerName || !routePath || !description || !prompt) {
+      console.log('❌ Missing required fields');
       return res.status(400).json({ error: 'Worker name, route path, description, and prompt are required' });
     }
+
+    if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+      console.log('❌ Invalid API key');
+      return res.status(400).json({ error: 'Valid Anthropic API key is required. Please configure your API key.' });
+    }
+    
+    console.log('✅ Validation passed, proceeding to AI generation...');
 
     try {
       // Generate AI-powered backend code using Claude
       const claudeResponse = await generateAIWorkerCode({
+        apiKey,
         workerName,
         routePath,
         httpMethod,
@@ -2544,10 +2888,14 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
         context
       });
 
+      console.log('🔄 Claude Response Received:', claudeResponse.success ? 'SUCCESS' : 'FAILED');
+      
       if (!claudeResponse.success) {
+        console.log('❌ AI worker code generation failed');
         return res.status(500).json({ error: 'Failed to generate AI worker code: ' + claudeResponse.error });
       }
 
+      console.log('📀 Inserting into database...');
       // Insert into database
       db.run(`INSERT INTO ai_workers (
         workerName, routePath, httpMethod, description, prompt, context, 
@@ -2573,6 +2921,7 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
         ],
         function(err) {
           if (err) {
+            console.log('❌ Database INSERT error:', err.message);
             if (err.message.includes('UNIQUE constraint failed')) {
               return res.status(400).json({ error: 'Route path already exists' });
             }
@@ -2580,17 +2929,26 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
           }
           
           const workerId = this.lastID;
+          console.log('✅ Database INSERT successful, Worker ID:', workerId);
           
           // Return created worker with Claude usage info
           db.get('SELECT * FROM ai_workers WHERE id = ?', [workerId], (err, worker) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) {
+              console.log('❌ Database SELECT error:', err.message);
+              return res.status(500).json({ error: err.message });
+            }
             
-            res.json({
+            console.log('✅ Worker retrieved from database');
+            const response = {
               worker,
               tokens_used: claudeResponse.tokens_used || 0,
               estimated_cost: claudeResponse.estimated_cost || 0.0,
               message: 'AI worker created successfully'
-            });
+            };
+            console.log('📤 Sending response:', response);
+            console.log('=== AI WORKER CREATE COMPLETE ===\n');
+            
+            res.json(response);
           });
         });
     } catch (error) {
@@ -2621,31 +2979,165 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
       });
   });
 
-  // Execute AI worker (customer endpoint)
-  server.all('/api/worker/*', requireSubscriberAuth, aiWorkerSecurityMiddleware, async (req, res) => {
+  // Execute integrated backend workers
+  server.all('/api/integrated/*', requireSubscriberAuth, aiWorkerSecurityMiddleware, async (req, res) => {
+    console.log('\n⚡ === INTEGRATED BACKEND EXECUTION REQUEST ===');
+    console.log('🛤️  Route Path:', req.path);
+    console.log('📡 HTTP Method:', req.method);
+    console.log('👤 User ID:', req.user?.id);
+    console.log('📥 Request Body:', req.body);
+    console.log('🔍 Query Params:', req.query);
+    
     const routePath = req.path;
     
     try {
+      console.log('🔍 Looking up integrated backend worker in database...');
+      // Find the integrated backend worker for this route
+      db.get('SELECT * FROM ai_workers WHERE routePath = ? AND isActive = 1 AND workerType = "integrated-backend"', [routePath], async (err, worker) => {
+        if (err) {
+          console.log('❌ Database error:', err.message);
+          return res.status(500).json({ error: err.message });
+        }
+        
+        if (!worker) {
+          console.log('❌ Integrated backend worker not found for route:', routePath);
+          return res.status(404).json({ 
+            error: 'Integrated backend endpoint not found',
+            route: routePath,
+            available_routes: 'Please check if the endpoint exists and is active'
+          });
+        }
+
+        console.log('✅ Found integrated backend worker:', worker.workerName);
+        console.log('🔧 Worker Type:', worker.workerType);
+        console.log('🔐 Auth Required:', worker.requireAuth);
+        console.log('📊 Access Level:', worker.accessLevel);
+
+        // Verify user has required access level
+        if (worker.accessLevel === 'subscriber' && (!req.user || req.user.subscription_status !== 'active')) {
+          console.log('❌ Access denied: subscriber access required');
+          return res.status(403).json({ 
+            error: 'Subscriber access required',
+            required_level: worker.accessLevel,
+            user_level: req.user?.subscription_status || 'none'
+          });
+        }
+
+        try {
+          console.log('🚀 Executing integrated backend worker...');
+          console.log('📝 Generated Code Preview (first 200 chars):', worker.generatedCode?.substring(0, 200) + '...');
+          
+          // Execute the integrated backend worker securely
+          const result = await executeAIWorkerSecurely(worker, req, res);
+          
+          console.log('✅ Integrated backend worker execution successful');
+          console.log('📤 Result preview:', JSON.stringify(result).substring(0, 200) + '...');
+          
+          // Log successful execution
+          logAIWorkerExecution(
+            worker.id, 
+            req.user.id, 
+            'success', 
+            null, 
+            null,
+            JSON.stringify(req.body),
+            JSON.stringify(result),
+            req.ip,
+            req.get('User-Agent')
+          );
+          
+        } catch (error) {
+          console.log('❌ Integrated backend worker execution failed:', error.message);
+          console.log('📊 Error Stack:', error.stack);
+          
+          // Log failed execution
+          logAIWorkerExecution(
+            worker.id, 
+            req.user.id, 
+            'error', 
+            error.message, 
+            error.stack,
+            JSON.stringify(req.body),
+            null,
+            req.ip,
+            req.get('User-Agent')
+          );
+          
+          return res.status(500).json({ 
+            error: 'Integrated backend execution failed', 
+            details: error.message,
+            worker_name: worker.workerName
+          });
+        }
+      });
+    } catch (error) {
+      console.log('❌ Integrated backend request processing failed:', error.message);
+      return res.status(500).json({ 
+        error: 'Request processing failed', 
+        details: error.message 
+      });
+    }
+  });
+
+  // Execute AI worker (customer endpoint)
+  server.all('/api/worker/*', requireSubscriberAuth, aiWorkerSecurityMiddleware, async (req, res) => {
+    console.log('\n⚡ === AI WORKER EXECUTION REQUEST ===');
+    console.log('🛤️  Route Path:', req.path);
+    console.log('📡 HTTP Method:', req.method);
+    console.log('👤 User ID:', req.user?.id);
+    console.log('📥 Request Body:', req.body);
+    console.log('🔍 Query Params:', req.query);
+    
+    const routePath = req.path;
+    
+    try {
+      console.log('🔍 Looking up AI worker in database...');
       // Find the AI worker for this route
       db.get('SELECT * FROM ai_workers WHERE routePath = ? AND isActive = 1', [routePath], async (err, worker) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (!worker) return res.status(404).json({ error: 'AI worker not found or inactive' });
+        if (err) {
+          console.log('❌ Database error:', err.message);
+          return res.status(500).json({ error: err.message });
+        }
+        
+        if (!worker) {
+          console.log('❌ AI worker not found for route:', routePath);
+          return res.status(404).json({ error: 'AI worker not found or inactive' });
+        }
+        
+        console.log('✅ AI Worker found:');
+        console.log('  - ID:', worker.id);
+        console.log('  - Name:', worker.workerName);
+        console.log('  - Method:', worker.httpMethod);
+        console.log('  - Access Level:', worker.accessLevel);
+        console.log('  - Generated Code Length:', worker.generatedCode?.length, 'characters');
         
         // Check if HTTP method matches
         if (worker.httpMethod.toUpperCase() !== req.method.toUpperCase()) {
+          console.log('❌ HTTP method mismatch:', req.method, 'vs', worker.httpMethod);
           return res.status(405).json({ error: `Method ${req.method} not allowed. This route accepts ${worker.httpMethod}` });
         }
         
+        console.log('✅ HTTP method check passed');
+        
         // Check access level permissions
+        console.log('🔐 Checking access level permissions...');
         if (worker.accessLevel === 'admin' && req.user.role !== 'admin') {
+          console.log('❌ Admin access required but user is not admin');
           return res.status(403).json({ error: 'Admin access required' });
         }
+        console.log('✅ Access level check passed');
         
         // Check OAuth requirements
+        console.log('🔗 Checking OAuth requirements...');
         const oauthRequirements = JSON.parse(worker.oauthRequirements || '[]');
+        console.log('📋 Required OAuth services:', oauthRequirements);
+        
         if (oauthRequirements.length > 0) {
           const userConnections = await getUserOAuthConnections(req.user.id, oauthRequirements);
+          console.log('🔌 User OAuth connections:', userConnections.map(c => c.service_name));
+          
           if (userConnections.length < oauthRequirements.length) {
+            console.log('❌ Missing required OAuth connections');
             return res.status(403).json({ 
               error: 'Missing required OAuth connections',
               required_services: oauthRequirements,
@@ -2653,10 +3145,17 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
             });
           }
         }
+        console.log('✅ OAuth requirements check passed');
         
         try {
+          console.log('🚀 Executing AI worker code...');
+          console.log('📝 Generated Code Preview (first 200 chars):', worker.generatedCode?.substring(0, 200) + '...');
+          
           // Execute the AI worker securely
           const result = await executeAIWorkerSecurely(worker, req, res);
+          
+          console.log('✅ AI worker execution successful');
+          console.log('📤 Result preview:', JSON.stringify(result).substring(0, 200) + '...');
           
           // Log successful execution with details
           logAIWorkerExecution(
@@ -2673,6 +3172,11 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
           
           res.json(result);
         } catch (error) {
+          console.log('❌ AI worker execution failed');
+          console.log('🚨 Error Type:', error.constructor.name);
+          console.log('📝 Error Message:', error.message);
+          console.log('🔍 Error Stack:', error.stack);
+          
           // Log failed execution
           logAIWorkerExecution(
             worker.id, 
@@ -2686,6 +3190,7 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
             req.get('User-Agent')
           );
           
+          console.log('=== AI WORKER EXECUTION FAILED ===\n');
           res.status(500).json({ error: error.message });
         }
       });
@@ -4580,12 +5085,22 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
       return handle(req, res);
     }
     
-    db.get('SELECT * FROM pages WHERE slug = ? AND is_published = true', [slug], (err, page) => {
+    // First check for Logic Pages
+    db.get('SELECT * FROM logic_pages WHERE slug = ? AND is_active = 1', [slug], (err, logicPage) => {
       if (err) return res.status(500).send('Server error');
-      if (!page) {
-        // If no dynamic page found, let Next.js handle it (could be a static page)
-        return handle(req, res);
+      
+      if (logicPage) {
+        // Logic page found - render using Next.js dynamic component
+        return nextApp.render(req, res, '/logic-page/[slug]', { slug });
       }
+      
+      // No logic page found, check regular pages
+      db.get('SELECT * FROM pages WHERE slug = ? AND is_published = true', [slug], (err, page) => {
+        if (err) return res.status(500).send('Server error');
+        if (!page) {
+          // If no dynamic page found, let Next.js handle it (could be a static page)
+          return handle(req, res);
+        }
       
       // Check access permissions
       if (page.access_level === 'subscriber') {
@@ -4611,6 +5126,7 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
       
       res.setHeader('Content-Type', 'text/html');
       res.send(html);
+      });
     });
   });
 

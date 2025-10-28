@@ -32,6 +32,7 @@ const navigation = [
     items: [
       { name: 'Pages', href: '/admin/pages', icon: 'file-text', current: false },
       { name: 'Reserved Pages', href: '/admin/reserved-pages', icon: 'palette', current: false },
+      { name: 'Logic Pages', href: '/admin/logic-pages', icon: 'zap', current: false, badge: 'AI' },
       { name: 'Blog', href: '/admin/blog', icon: 'edit', current: false },
     ]
   },
@@ -197,6 +198,13 @@ const icons = {
   'cpu': (
     <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+    </svg>
+  ),
+  'bot': (
+    <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      <circle cx="9" cy="9" r="1" />
+      <circle cx="15" cy="9" r="1" />
     </svg>
   ),
 };
