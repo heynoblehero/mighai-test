@@ -53,6 +53,28 @@ export default function LogicPagesIndex() {
     }
   };
 
+  const cloneLogicPage = async (id) => {
+    if (!confirm('Clone this logic page? A copy will be created as a draft.')) return;
+
+    try {
+      const res = await fetch(`/api/logic-pages/clone/${id}`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Logic page cloned successfully!');
+        fetchLogicPages();
+        // Navigate to edit the cloned page
+        router.push(`/admin/logic-pages/edit/${data.logic_page.id}`);
+      } else {
+        alert(data.error || 'Failed to clone logic page');
+      }
+    } catch (error) {
+      console.error('Failed to clone logic page:', error);
+      alert('Failed to clone logic page');
+    }
+  };
+
   const getStatusBadge = (status) => {
     const badges = {
       draft: 'bg-gray-500',
@@ -115,13 +137,21 @@ export default function LogicPagesIndex() {
               Search
             </button>
           </div>
-          <button
-            onClick={() => router.push('/admin/logic-pages/new')}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
-          >
-            <span className="text-xl">+</span>
-            New Logic Page
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => router.push('/admin/logic-pages/logs')}
+              className="px-6 py-2 bg-surface-neutral border border-border rounded-lg text-white hover:bg-surface-hovered transition-colors flex items-center gap-2"
+            >
+              📊 View Logs
+            </button>
+            <button
+              onClick={() => router.push('/admin/logic-pages/new')}
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors flex items-center gap-2"
+            >
+              <span className="text-xl">+</span>
+              New Logic Page
+            </button>
+          </div>
         </div>
 
         {/* Logic Pages List */}
@@ -177,6 +207,12 @@ export default function LogicPagesIndex() {
                         View
                       </button>
                     )}
+                    <button
+                      onClick={() => cloneLogicPage(page.id)}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                      Clone
+                    </button>
                     <button
                       onClick={() => deleteLogicPage(page.id)}
                       className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"

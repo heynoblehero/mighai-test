@@ -19,10 +19,16 @@ export default async function handler(req, res) {
 
 // GET /api/logic-pages - List all logic pages
 function handleGetLogicPages(req, res) {
-  const { status, search } = req.query;
+  const { status, search, slug } = req.query;
 
   let query = 'SELECT * FROM logic_pages WHERE 1=1';
   const params = [];
+
+  // Exact slug match (for public pages)
+  if (slug) {
+    query += ' AND slug = ?';
+    params.push(slug);
+  }
 
   if (status) {
     query += ' AND status = ?';
