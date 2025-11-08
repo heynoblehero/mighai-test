@@ -32,6 +32,7 @@ const navigation = [
     items: [
       { name: 'Pages', href: '/admin/pages', icon: 'file-text', current: false },
       { name: 'Reserved Pages', href: '/admin/reserved-pages', icon: 'palette', current: false },
+      { name: 'Logic Pages', href: '/admin/logic-pages', icon: 'code', current: false },
       { name: 'Blog', href: '/admin/blog', icon: 'edit', current: false },
     ]
   },

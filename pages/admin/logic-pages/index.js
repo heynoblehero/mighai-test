@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import AdminLayout from '@/components/AdminLayout';
+import AdminLayout from '../../../components/AdminLayout';
 
 export default function LogicPagesIndex() {
   const router = useRouter();
