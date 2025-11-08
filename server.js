@@ -695,6 +695,75 @@ db.serialize(() => {
     completed_at DATETIME,
     FOREIGN KEY (user_id) REFERENCES users (id)
   )`);
+
+  // Logic Pages System - Main table for logic pages
+  db.run(`CREATE TABLE IF NOT EXISTS logic_pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'building', 'testing', 'published', 'archived')),
+    inputs_json TEXT,
+    backend_function TEXT,
+    backend_route TEXT UNIQUE,
+    frontend_html TEXT,
+    frontend_css TEXT,
+    frontend_js TEXT,
+    result_page_config TEXT,
+    ai_context TEXT,
+    created_by INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    published_at DATETIME,
+    FOREIGN KEY (created_by) REFERENCES users (id)
+  )`);
+
+  // Logic Page Inputs - Stores input fields for each logic page
+  db.run(`CREATE TABLE IF NOT EXISTS logic_page_inputs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logic_page_id INTEGER NOT NULL,
+    input_name TEXT NOT NULL,
+    input_label TEXT NOT NULL,
+    input_type TEXT NOT NULL CHECK (input_type IN ('text', 'number', 'email', 'url', 'textarea', 'select', 'checkbox', 'radio', 'file', 'date', 'datetime')),
+    input_placeholder TEXT,
+    input_default_value TEXT,
+    is_required BOOLEAN DEFAULT 0,
+    validation_rules TEXT,
+    options_json TEXT,
+    order_index INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
+  )`);
+
+  // Logic Page Executions - Logs all function executions
+  db.run(`CREATE TABLE IF NOT EXISTS logic_page_executions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logic_page_id INTEGER NOT NULL,
+    user_id INTEGER,
+    inputs_data TEXT NOT NULL,
+    output_data TEXT,
+    execution_time_ms INTEGER,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'success', 'error')),
+    error_message TEXT,
+    error_stack TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+  )`);
+
+  // Logic Page Chat History - Stores AI chat for building logic
+  db.run(`CREATE TABLE IF NOT EXISTS logic_page_chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    logic_page_id INTEGER NOT NULL,
+    chat_type TEXT NOT NULL CHECK (chat_type IN ('backend', 'frontend', 'testing')),
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    message TEXT NOT NULL,
+    context_data TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
+  )`);
 });
 
 // Passport configuration
