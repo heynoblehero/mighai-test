@@ -484,6 +484,856 @@ export default function NewEnhancedPage() {
   border-top: 1px solid #333;
   color: #999;
 }`
+    },
+    navbar: {
+      name: 'Navigation Bar',
+      icon: '🧭',
+      html: `<nav class="navbar">
+  <div class="nav-container">
+    <div class="nav-logo">Brand</div>
+    <ul class="nav-menu">
+      <li><a href="#home">Home</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+    <button class="nav-cta">Get Started</button>
+  </div>
+</nav>`,
+      css: `.navbar {
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.nav-logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.nav-menu {
+  display: flex;
+  list-style: none;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+.nav-menu a {
+  text-decoration: none;
+  color: #333;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.nav-menu a:hover {
+  color: #667eea;
+}
+.nav-cta {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.nav-cta:hover {
+  transform: scale(1.05);
+}`
+    },
+    stats: {
+      name: 'Stats Counter',
+      icon: '📊',
+      html: `<section class="stats-section">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">10M+</div>
+        <div class="stat-label">Active Users</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">50K+</div>
+        <div class="stat-label">Companies</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">99.9%</div>
+        <div class="stat-label">Uptime</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">Support</div>
+      </div>
+    </div>
+  </div>
+</section>`,
+      css: `.stats-section {
+  padding: 80px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.stat-card {
+  text-align: center;
+}
+.stat-number {
+  font-size: 3.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  background: rgba(255,255,255,0.2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 30px rgba(255,255,255,0.5);
+}
+.stat-label {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}`
+    },
+    cta: {
+      name: 'Call to Action',
+      icon: '🎯',
+      html: `<section class="cta-section">
+  <div class="cta-container">
+    <h2>Ready to Get Started?</h2>
+    <p>Join thousands of satisfied customers today</p>
+    <div class="cta-buttons">
+      <button class="btn-primary">Start Free Trial</button>
+      <button class="btn-secondary">Schedule Demo</button>
+    </div>
+  </div>
+</section>`,
+      css: `.cta-section {
+  padding: 100px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+.cta-section::before {
+  content: '';
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  top: -250px;
+  right: -250px;
+}
+.cta-container {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+  color: white;
+  position: relative;
+  z-index: 1;
+}
+.cta-container h2 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+.cta-container p {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+.cta-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-primary, .btn-secondary {
+  padding: 15px 40px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.btn-primary {
+  background: white;
+  color: #667eea;
+}
+.btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.btn-secondary {
+  background: transparent;
+  color: white;
+  border: 2px solid white;
+}
+.btn-secondary:hover {
+  background: white;
+  color: #667eea;
+}`
+    },
+    timeline: {
+      name: 'Timeline',
+      icon: '📅',
+      html: `<section class="timeline-section">
+  <div class="container">
+    <h2>Our Journey</h2>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>2020 - Founded</h3>
+          <p>Started with a vision to revolutionize the industry</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>2021 - First Product</h3>
+          <p>Launched our flagship product to great success</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>2023 - Global Expansion</h3>
+          <p>Expanded operations to 50+ countries worldwide</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <h3>2024 - Market Leader</h3>
+          <p>Became the #1 choice in our category</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>`,
+      css: `.timeline-section {
+  padding: 80px 20px;
+  background: #f8f9fa;
+}
+.timeline-section h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 4rem;
+}
+.timeline {
+  max-width: 800px;
+  margin: 0 auto;
+  position: relative;
+  padding-left: 40px;
+}
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #667eea, #764ba2);
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 3rem;
+}
+.timeline-dot {
+  position: absolute;
+  left: -31px;
+  top: 8px;
+  width: 20px;
+  height: 20px;
+  background: #667eea;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: 0 0 0 4px #667eea;
+}
+.timeline-content {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  margin-left: 20px;
+}
+.timeline-content h3 {
+  color: #667eea;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+.timeline-content p {
+  color: #666;
+  line-height: 1.6;
+}`
+    },
+    team: {
+      name: 'Team Grid',
+      icon: '👥',
+      html: `<section class="team-section">
+  <div class="container">
+    <h2>Meet Our Team</h2>
+    <div class="team-grid">
+      <div class="team-member">
+        <div class="member-image">👨‍💼</div>
+        <h3>John Doe</h3>
+        <p class="role">CEO & Founder</p>
+        <div class="social-links">
+          <a href="#">💼</a>
+          <a href="#">🐦</a>
+          <a href="#">📧</a>
+        </div>
+      </div>
+      <div class="team-member">
+        <div class="member-image">👩‍💼</div>
+        <h3>Jane Smith</h3>
+        <p class="role">CTO</p>
+        <div class="social-links">
+          <a href="#">💼</a>
+          <a href="#">🐦</a>
+          <a href="#">📧</a>
+        </div>
+      </div>
+      <div class="team-member">
+        <div class="member-image">👨‍💻</div>
+        <h3>Mike Johnson</h3>
+        <p class="role">Lead Developer</p>
+        <div class="social-links">
+          <a href="#">💼</a>
+          <a href="#">🐦</a>
+          <a href="#">📧</a>
+        </div>
+      </div>
+      <div class="team-member">
+        <div class="member-image">👩‍🎨</div>
+        <h3>Sarah Williams</h3>
+        <p class="role">Design Lead</p>
+        <div class="social-links">
+          <a href="#">💼</a>
+          <a href="#">🐦</a>
+          <a href="#">📧</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>`,
+      css: `.team-section {
+  padding: 80px 20px;
+}
+.team-section h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+}
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.team-member {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s;
+}
+.team-member:hover {
+  transform: translateY(-10px);
+}
+.member-image {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+  filter: grayscale(20%);
+}
+.team-member h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.role {
+  color: #667eea;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.social-links {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+.social-links a {
+  font-size: 1.5rem;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+.social-links a:hover {
+  transform: scale(1.2);
+}`
+    },
+    faq: {
+      name: 'FAQ Accordion',
+      icon: '❓',
+      html: `<section class="faq-section">
+  <div class="container">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-question">How do I get started?</div>
+        <div class="faq-answer">Simply sign up for a free account and follow our quick onboarding guide. You'll be up and running in minutes!</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">What payment methods do you accept?</div>
+        <div class="faq-answer">We accept all major credit cards, PayPal, and bank transfers for enterprise customers.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">Is there a free trial?</div>
+        <div class="faq-answer">Yes! We offer a 14-day free trial with full access to all features. No credit card required.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-question">Can I cancel anytime?</div>
+        <div class="faq-answer">Absolutely. You can cancel your subscription at any time with no cancellation fees.</div>
+      </div>
+    </div>
+  </div>
+</section>`,
+      css: `.faq-section {
+  padding: 80px 20px;
+  background: #f8f9fa;
+}
+.faq-section h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+}
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+}
+.faq-item {
+  background: white;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.faq-question {
+  padding: 1.5rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+}
+.faq-question:hover {
+  background: #f8f9fa;
+}
+.faq-question::after {
+  content: '+';
+  position: absolute;
+  right: 1.5rem;
+  font-size: 1.5rem;
+  color: #667eea;
+}
+.faq-answer {
+  padding: 0 1.5rem 1.5rem;
+  color: #666;
+  line-height: 1.6;
+}`
+    },
+    newsletter: {
+      name: 'Newsletter Signup',
+      icon: '📬',
+      html: `<section class="newsletter-section">
+  <div class="newsletter-container">
+    <h2>Stay Updated</h2>
+    <p>Subscribe to our newsletter for the latest updates and exclusive offers</p>
+    <form class="newsletter-form">
+      <input type="email" placeholder="Enter your email" required>
+      <button type="submit">Subscribe</button>
+    </form>
+    <p class="newsletter-disclaimer">We respect your privacy. Unsubscribe at any time.</p>
+  </div>
+</section>`,
+      css: `.newsletter-section {
+  padding: 80px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+.newsletter-container {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+.newsletter-container h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+.newsletter-container > p {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+.newsletter-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.newsletter-form input {
+  flex: 1;
+  padding: 15px 20px;
+  border: none;
+  border-radius: 50px;
+  font-size: 1rem;
+}
+.newsletter-form input:focus {
+  outline: none;
+}
+.newsletter-form button {
+  padding: 15px 30px;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(10px);
+  border: 2px solid white;
+  border-radius: 50px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.newsletter-form button:hover {
+  background: white;
+  color: #667eea;
+}
+.newsletter-disclaimer {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}`
+    },
+    gallery: {
+      name: 'Image Gallery',
+      icon: '🖼️',
+      html: `<section class="gallery-section">
+  <div class="container">
+    <h2>Gallery</h2>
+    <div class="gallery-grid">
+      <div class="gallery-item">
+        <div class="gallery-placeholder">🏞️</div>
+        <div class="gallery-overlay">
+          <h3>Project Title 1</h3>
+          <p>Description</p>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-placeholder">🌄</div>
+        <div class="gallery-overlay">
+          <h3>Project Title 2</h3>
+          <p>Description</p>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-placeholder">🌅</div>
+        <div class="gallery-overlay">
+          <h3>Project Title 3</h3>
+          <p>Description</p>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-placeholder">🌇</div>
+        <div class="gallery-overlay">
+          <h3>Project Title 4</h3>
+          <p>Description</p>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-placeholder">🌆</div>
+        <div class="gallery-overlay">
+          <h3>Project Title 5</h3>
+          <p>Description</p>
+        </div>
+      </div>
+      <div class="gallery-item">
+        <div class="gallery-placeholder">🏙️</div>
+        <div class="gallery-overlay">
+          <h3>Project Title 6</h3>
+          <p>Description</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>`,
+      css: `.gallery-section {
+  padding: 80px 20px;
+}
+.gallery-section h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+}
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.gallery-item {
+  position: relative;
+  aspect-ratio: 16/9;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.gallery-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.gallery-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  padding: 2rem;
+}
+.gallery-item:hover .gallery-overlay {
+  opacity: 1;
+}
+.gallery-overlay h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.gallery-overlay p {
+  opacity: 0.9;
+}`
+    },
+    blog: {
+      name: 'Blog Cards',
+      icon: '📝',
+      html: `<section class="blog-section">
+  <div class="container">
+    <h2>Latest Articles</h2>
+    <div class="blog-grid">
+      <article class="blog-card">
+        <div class="blog-image">📰</div>
+        <div class="blog-content">
+          <div class="blog-meta">
+            <span class="blog-date">May 15, 2024</span>
+            <span class="blog-category">Technology</span>
+          </div>
+          <h3>10 Tips for Better Web Design</h3>
+          <p>Discover essential techniques to create stunning websites that convert visitors into customers.</p>
+          <a href="#" class="blog-link">Read More →</a>
+        </div>
+      </article>
+      <article class="blog-card">
+        <div class="blog-image">🚀</div>
+        <div class="blog-content">
+          <div class="blog-meta">
+            <span class="blog-date">May 12, 2024</span>
+            <span class="blog-category">Marketing</span>
+          </div>
+          <h3>Growing Your Business Online</h3>
+          <p>Learn proven strategies to scale your online presence and reach more customers effectively.</p>
+          <a href="#" class="blog-link">Read More →</a>
+        </div>
+      </article>
+      <article class="blog-card">
+        <div class="blog-image">💡</div>
+        <div class="blog-content">
+          <div class="blog-meta">
+            <span class="blog-date">May 10, 2024</span>
+            <span class="blog-category">Innovation</span>
+          </div>
+          <h3>The Future of Digital Products</h3>
+          <p>Explore upcoming trends and innovations shaping the future of digital product development.</p>
+          <a href="#" class="blog-link">Read More →</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>`,
+      css: `.blog-section {
+  padding: 80px 20px;
+  background: #f8f9fa;
+}
+.blog-section h2 {
+  text-align: center;
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+}
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.blog-card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s;
+}
+.blog-card:hover {
+  transform: translateY(-10px);
+}
+.blog-image {
+  height: 200px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 4rem;
+}
+.blog-content {
+  padding: 1.5rem;
+}
+.blog-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+}
+.blog-date {
+  color: #999;
+}
+.blog-category {
+  color: #667eea;
+  font-weight: 600;
+}
+.blog-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+.blog-card p {
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+.blog-link {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.blog-link:hover {
+  color: #5568d3;
+}`
+    },
+    glassmorphism: {
+      name: 'Glassmorphism Card',
+      icon: '💎',
+      html: `<section class="glass-section">
+  <div class="glass-container">
+    <div class="glass-card">
+      <h2>Glassmorphism Design</h2>
+      <p>Experience the modern frosted glass aesthetic with backdrop filters and transparency effects.</p>
+      <button class="glass-btn">Explore More</button>
+    </div>
+  </div>
+</section>`,
+      css: `.glass-section {
+  padding: 100px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+.glass-section::before {
+  content: '';
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  top: -100px;
+  right: 10%;
+  animation: float 6s ease-in-out infinite;
+}
+.glass-section::after {
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  bottom: -50px;
+  left: 15%;
+  animation: float 8s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(20px); }
+}
+.glass-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+.glass-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  color: white;
+}
+.glass-card h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+.glass-card p {
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+.glass-btn {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 15px 40px;
+  border-radius: 50px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}`
     }
   };
 
