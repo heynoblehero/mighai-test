@@ -85,7 +85,7 @@ export default function LogicPage() {
     );
   }
 
-  // Inject the frontend code
+  // Inject the frontend and result page code
   const fullHtmlContent = `
     <!DOCTYPE html>
     <html>
@@ -109,19 +109,80 @@ export default function LogicPage() {
             min-height: 100vh;
             padding: 20px;
           }
+
+          /* Frontend CSS */
           ${logicPage.frontend_css || ''}
+
+          /* Result Page CSS */
+          ${logicPage.result_page_css || ''}
+
+          /* Page switching styles */
+          .page-section {
+            display: none;
+          }
+          .page-section.active {
+            display: block;
+          }
         </style>
       </head>
       <body>
-        ${logicPage.frontend_html || ''}
+        <!-- Frontend Section -->
+        <div id="frontendSection" class="page-section active">
+          ${logicPage.frontend_html || ''}
+        </div>
+
+        <!-- Result Page Section -->
+        <div id="resultSection" class="page-section">
+          ${logicPage.result_page_html || '<div><h2>Result</h2><div id="defaultResult"></div></div>'}
+          <div style="margin-top: 20px;">
+            <button onclick="showFrontend()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+              Back to Form
+            </button>
+          </div>
+        </div>
 
         <script>
-          // Ensure the backend route is available globally
+          // Global variables
           window.BACKEND_ROUTE = '${logicPage.backend_route}';
           window.LOGIC_PAGE_SLUG = '${logicPage.slug}';
+          window.RESULT_DATA = null;
 
-          // User's JavaScript
+          // Page switching functions
+          function showFrontend() {
+            document.getElementById('frontendSection').classList.add('active');
+            document.getElementById('resultSection').classList.remove('active');
+          }
+
+          function showResult() {
+            document.getElementById('frontendSection').classList.remove('active');
+            document.getElementById('resultSection').classList.add('active');
+          }
+
+          // Helper function to display result
+          function displayResult(result) {
+            window.RESULT_DATA = result;
+            showResult();
+
+            // Try to call custom result display function if it exists
+            if (typeof window.displayResultPage === 'function') {
+              window.displayResultPage(result);
+            } else {
+              // Default result display
+              const defaultResultDiv = document.getElementById('defaultResult');
+              if (defaultResultDiv) {
+                defaultResultDiv.innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+              }
+            }
+          }
+
+          // Make displayResult available globally
+          window.displayResult = displayResult;
+
+          // Frontend JavaScript (user's code)
           ${logicPage.frontend_js || ''}
+
+          // Result Page JavaScript (user's code)
+          ${logicPage.result_page_js || ''}
         </script>
       </body>
     </html>

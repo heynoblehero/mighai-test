@@ -11,22 +11,19 @@ export default function NewLogicPage() {
   // Step 1: Basic Info
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
+
+  // Step 2: AI Context Description
   const [description, setDescription] = useState('');
 
-  // Step 2: AI Suggested Inputs
+  // Step 3: AI Suggested Inputs
   const [inputs, setInputs] = useState([]);
   const [aiReasoning, setAiReasoning] = useState('');
 
-  // Step 3: Backend Function
+  // Step 4: Backend Function
   const [backendFunction, setBackendFunction] = useState('');
   const [backendChat, setBackendChat] = useState([]);
   const [backendMessage, setBackendMessage] = useState('');
   const [backendRoute, setBackendRoute] = useState('');
-
-  // Step 4: Test Function
-  const [testInputs, setTestInputs] = useState({});
-  const [testResult, setTestResult] = useState(null);
-  const [testError, setTestError] = useState('');
 
   // Step 5: Frontend Code
   const [frontendHtml, setFrontendHtml] = useState('');
@@ -35,8 +32,17 @@ export default function NewLogicPage() {
   const [frontendChat, setFrontendChat] = useState([]);
   const [frontendMessage, setFrontendMessage] = useState('');
 
-  // Step 6: Preview & Publish
+  // Step 6: Result Page
+  const [resultHtml, setResultHtml] = useState('');
+  const [resultCss, setResultCss] = useState('');
+  const [resultJs, setResultJs] = useState('');
+  const [resultChat, setResultChat] = useState([]);
+  const [resultMessage, setResultMessage] = useState('');
+
+  // Step 7: Preview & Publish
   const [previewMode, setPreviewMode] = useState('desktop');
+  const [testInputs, setTestInputs] = useState({});
+  const [testResult, setTestResult] = useState(null);
 
   const [logicPageId, setLogicPageId] = useState(null);
   const [error, setError] = useState('');
@@ -45,83 +51,124 @@ export default function NewLogicPage() {
   // Auto-scroll chat to bottom
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [backendChat, frontendChat]);
+  }, [backendChat, frontendChat, resultChat]);
 
   // Auto-generate slug from title
-  const handleTitleChange = (value) => {
-    setTitle(value);
-    const generatedSlug = value
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-    setSlug(generatedSlug);
-  };
-
-  // Initialize test inputs from configured inputs
   useEffect(() => {
-    if (inputs.length > 0) {
-      const initialTestInputs = {};
-      inputs.forEach(input => {
-        initialTestInputs[input.name] = input.default || '';
-      });
-      setTestInputs(initialTestInputs);
+    if (title && !slug) {
+      const generatedSlug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      setSlug(generatedSlug);
     }
-  }, [inputs]);
+  }, [title]);
 
-  // ==================== STEP 1: CREATE & SUGGEST INPUTS ====================
-  const handleStep1Submit = async () => {
-    if (!title || !slug || !description) {
-      setError('Please fill in all fields');
+  // Auto-generate backend route from slug
+  useEffect(() => {
+    if (slug) {
+      setBackendRoute(`/api/logic/${slug}`);
+    }
+  }, [slug]);
+
+  // ==================== STEP 1: Basic Info ====================
+  const handleStep1Next = async () => {
+    if (!title.trim() || !slug.trim()) {
+      setError('Please fill in all required fields');
       return;
     }
 
-    setLoading(true);
+    // Validate slug format
+    const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+    if (!slugRegex.test(slug)) {
+      setError('Slug must contain only lowercase letters, numbers, and hyphens');
+      return;
+    }
+
+    setError('');
+    setStep(2);
+  };
+
+  // ==================== STEP 2: AI Context Description ====================
+  const handleStep2Next = async () => {
+    if (!description.trim()) {
+      setError('Please provide a detailed description for AI context');
+      return;
+    }
+
     setError('');
     setSuccess('');
+    setLoading(true);
 
     try {
-      // Create logic page
-      const createRes = await fetch('/api/logic-pages', {
+      // Create the logic page first
+      const createResponse = await fetch('/api/logic-pages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, slug, description, status: 'draft' })
+        body: JSON.stringify({
+          title,
+          slug,
+          description,
+          status: 'draft'
+        })
       });
 
-      const createData = await createRes.json();
-      if (!createData.success) {
-        setError(createData.error || 'Failed to create logic page');
-        setLoading(false);
-        return;
+      const createData = await createResponse.json();
+
+      if (!createResponse.ok) {
+        throw new Error(createData.error || 'Failed to create logic page');
       }
 
       setLogicPageId(createData.logic_page.id);
-      setBackendRoute(createData.logic_page.backend_route);
+      setSuccess('Logic page created! Now getting AI input suggestions...');
 
-      // Get AI suggestions for inputs
-      const suggestRes = await fetch('/api/logic-pages/suggest-inputs', {
+      // Get AI input suggestions
+      const suggestResponse = await fetch('/api/logic-pages/suggest-inputs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, slug, description })
+        body: JSON.stringify({ description })
       });
 
-      const suggestData = await suggestRes.json();
-      if (suggestData.success && suggestData.suggestions?.inputs) {
-        setInputs(suggestData.suggestions.inputs);
-        setAiReasoning(suggestData.suggestions.reasoning || '');
-        setSuccess('AI has analyzed your description and suggested inputs!');
+      const suggestData = await suggestResponse.json();
+
+      if (!suggestResponse.ok) {
+        throw new Error(suggestData.error || 'Failed to get AI suggestions');
       }
 
-      setStep(2);
+      setInputs(suggestData.inputs || []);
+      setAiReasoning(suggestData.reasoning || '');
+      setStep(3);
+
     } catch (err) {
-      setError('Failed to create logic page: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ==================== STEP 2: CONFIGURE INPUTS ====================
-  const handleStep2Submit = async () => {
+  // ==================== STEP 3: Input Configuration ====================
+  const handleInputChange = (index, field, value) => {
+    const newInputs = [...inputs];
+    newInputs[index] = { ...newInputs[index], [field]: value };
+    setInputs(newInputs);
+  };
+
+  const handleAddInput = () => {
+    setInputs([...inputs, {
+      input_name: '',
+      input_label: '',
+      input_type: 'text',
+      input_placeholder: '',
+      is_required: false
+    }]);
+  };
+
+  const handleRemoveInput = (index) => {
+    const newInputs = inputs.filter((_, i) => i !== index);
+    setInputs(newInputs);
+  };
+
+  const handleStep3Next = async () => {
     if (inputs.length === 0) {
       setError('Please add at least one input field');
       return;
@@ -131,856 +178,987 @@ export default function NewLogicPage() {
     setError('');
 
     try {
-      await fetch(`/api/logic-pages/${logicPageId}`, {
+      // Save inputs to logic page
+      const response = await fetch(`/api/logic-pages/${logicPageId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          inputs_json: inputs,
+          inputs_json: inputs
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save inputs');
+      }
+
+      setStep(4);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==================== STEP 4: Backend Builder ====================
+  const handleBackendChat = async () => {
+    if (!backendMessage.trim()) return;
+
+    setLoading(true);
+    setError('');
+
+    const userMessage = backendMessage;
+    setBackendMessage('');
+
+    const newChat = [...backendChat, { role: 'user', content: userMessage }];
+    setBackendChat(newChat);
+
+    try {
+      const response = await fetch('/api/logic-pages/chat/backend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          chatHistory: backendChat,
+          pageContext: {
+            title,
+            description,
+            inputs,
+            backend_route: backendRoute
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to chat with AI');
+      }
+
+      const assistantMessage = { role: 'assistant', content: data.message };
+      setBackendChat([...newChat, assistantMessage]);
+
+      // If AI provided code, update the backend function
+      if (data.code) {
+        setBackendFunction(data.code);
+      }
+
+    } catch (err) {
+      setError(err.message);
+      setBackendChat(newChat);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStep4Next = async () => {
+    if (!backendFunction.trim()) {
+      setError('Please generate or write a backend function');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/logic-pages/${logicPageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          backend_function: backendFunction,
+          backend_chat_history: backendChat,
           status: 'building'
         })
       });
 
-      setSuccess('Inputs saved successfully!');
-      setStep(3);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save backend function');
+      }
+
+      setStep(5);
     } catch (err) {
-      setError('Failed to save inputs: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const addInput = () => {
-    setInputs([...inputs, {
-      name: '',
-      label: '',
-      type: 'text',
-      placeholder: '',
-      required: false,
-      default: ''
-    }]);
-  };
-
-  const removeInput = (index) => {
-    setInputs(inputs.filter((_, i) => i !== index));
-  };
-
-  const updateInput = (index, field, value) => {
-    const updated = [...inputs];
-    updated[index][field] = value;
-    setInputs(updated);
-  };
-
-  // ==================== STEP 3: BUILD BACKEND ====================
-  const sendBackendMessage = async () => {
-    if (!backendMessage.trim()) return;
-
-    const userMsg = { role: 'user', message: backendMessage };
-    setBackendChat([...backendChat, userMsg]);
-    setBackendMessage('');
+  // Test backend function
+  const handleTestFunction = async () => {
     setLoading(true);
     setError('');
-
-    try {
-      const res = await fetch('/api/logic-pages/generate-backend', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          description,
-          inputs,
-          chatHistory: backendChat,
-          userMessage: backendMessage
-        })
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        const assistantMsg = { role: 'assistant', message: data.message };
-        setBackendChat([...backendChat, userMsg, assistantMsg]);
-
-        if (data.code) {
-          setBackendFunction(data.code);
-          setSuccess('Backend function code generated!');
-        }
-      } else {
-        setError(data.error || 'Failed to generate backend');
-      }
-    } catch (err) {
-      setError('Error communicating with AI: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveBackendAndContinue = async () => {
-    if (!backendFunction) {
-      setError('Please generate backend function code first');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await fetch(`/api/logic-pages/${logicPageId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ backend_function: backendFunction })
-      });
-
-      setSuccess('Backend function saved!');
-      setStep(4);
-    } catch (err) {
-      setError('Failed to save backend: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ==================== STEP 4: TEST FUNCTION ====================
-  const testBackendFunction = async () => {
-    setLoading(true);
     setTestResult(null);
-    setTestError('');
 
     try {
-      const res = await fetch('/api/logic-pages/test-function', {
+      const response = await fetch('/api/logic-pages/test-function', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          functionCode: backendFunction,
-          testInputs
+          function_code: backendFunction,
+          test_inputs: testInputs
         })
       });
 
-      const data = await res.json();
-      if (data.success) {
-        setTestResult(data.result);
-        setSuccess(`Test successful! Executed in ${data.execution_time}ms`);
-      } else {
-        setTestError(data.error || 'Test failed');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Test failed');
       }
+
+      setTestResult(data);
     } catch (err) {
-      setTestError('Test error: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ==================== STEP 5: BUILD FRONTEND ====================
-  const sendFrontendMessage = async () => {
+  // ==================== STEP 5: Frontend Builder ====================
+  const handleFrontendChat = async () => {
     if (!frontendMessage.trim()) return;
 
-    const userMsg = { role: 'user', message: frontendMessage };
-    setFrontendChat([...frontendChat, userMsg]);
-    setFrontendMessage('');
     setLoading(true);
     setError('');
 
+    const userMessage = frontendMessage;
+    setFrontendMessage('');
+
+    const newChat = [...frontendChat, { role: 'user', content: userMessage }];
+    setFrontendChat(newChat);
+
     try {
-      const res = await fetch('/api/logic-pages/generate-frontend', {
+      const response = await fetch('/api/logic-pages/chat/frontend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title,
-          description,
-          inputs,
-          backendRoute,
+          message: userMessage,
           chatHistory: frontendChat,
-          userMessage: frontendMessage
+          pageContext: {
+            title,
+            description,
+            inputs,
+            backend_route: backendRoute,
+            hasBackendFunction: !!backendFunction
+          }
         })
       });
 
-      const data = await res.json();
-      if (data.success) {
-        const assistantMsg = { role: 'assistant', message: data.message };
-        setFrontendChat([...frontendChat, userMsg, assistantMsg]);
+      const data = await response.json();
 
-        if (data.code) {
-          setFrontendHtml(data.code.html || '');
-          setFrontendCss(data.code.css || '');
-          setFrontendJs(data.code.js || '');
-          setSuccess('Frontend code generated!');
-        }
-      } else {
-        setError(data.error || 'Failed to generate frontend');
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to chat with AI');
       }
+
+      const assistantMessage = { role: 'assistant', content: data.message };
+      setFrontendChat([...newChat, assistantMessage]);
+
+      // If AI provided code, update the frontend
+      if (data.code) {
+        if (data.code.html) setFrontendHtml(data.code.html);
+        if (data.code.css) setFrontendCss(data.code.css);
+        if (data.code.js) setFrontendJs(data.code.js);
+      }
+
     } catch (err) {
-      setError('Error communicating with AI: ' + err.message);
+      setError(err.message);
+      setFrontendChat(newChat);
     } finally {
       setLoading(false);
     }
   };
 
-  const saveFrontendAndContinue = async () => {
-    if (!frontendHtml) {
-      setError('Please generate frontend code first');
+  const handleStep5Next = async () => {
+    if (!frontendHtml.trim()) {
+      setError('Please generate or write frontend HTML');
       return;
     }
 
     setLoading(true);
+    setError('');
+
     try {
-      await fetch(`/api/logic-pages/${logicPageId}`, {
+      const response = await fetch(`/api/logic-pages/${logicPageId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           frontend_html: frontendHtml,
           frontend_css: frontendCss,
           frontend_js: frontendJs,
-          status: 'testing'
+          frontend_chat_history: frontendChat
         })
       });
 
-      setSuccess('Frontend code saved!');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save frontend code');
+      }
+
       setStep(6);
     } catch (err) {
-      setError('Failed to save frontend: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ==================== STEP 6: PUBLISH ====================
-  const publishLogicPage = async () => {
+  // ==================== STEP 6: Result Page Builder ====================
+  const handleResultChat = async () => {
+    if (!resultMessage.trim()) return;
+
     setLoading(true);
+    setError('');
+
+    const userMessage = resultMessage;
+    setResultMessage('');
+
+    const newChat = [...resultChat, { role: 'user', content: userMessage }];
+    setResultChat(newChat);
+
     try {
-      await fetch(`/api/logic-pages/${logicPageId}`, {
+      const response = await fetch('/api/logic-pages/chat/result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          chatHistory: resultChat,
+          pageContext: {
+            title,
+            description,
+            hasBackendFunction: !!backendFunction,
+            expectedOutput: 'Result will be in { success, data, message } format'
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to chat with AI');
+      }
+
+      const assistantMessage = { role: 'assistant', content: data.message };
+      setResultChat([...newChat, assistantMessage]);
+
+      // If AI provided code, update the result page
+      if (data.code) {
+        if (data.code.html) setResultHtml(data.code.html);
+        if (data.code.css) setResultCss(data.code.css);
+        if (data.code.js) setResultJs(data.code.js);
+      }
+
+    } catch (err) {
+      setError(err.message);
+      setResultChat(newChat);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStep6Next = async () => {
+    if (!resultHtml.trim()) {
+      setError('Please generate or write result page HTML');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/logic-pages/${logicPageId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'published' })
+        body: JSON.stringify({
+          result_page_html: resultHtml,
+          result_page_css: resultCss,
+          result_page_js: resultJs,
+          result_chat_history: resultChat,
+          status: 'testing'
+        })
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to save result page');
+      }
+
+      setStep(7);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==================== STEP 7: Preview & Publish ====================
+  const handlePublish = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/logic-pages/${logicPageId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'published'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to publish');
+      }
 
       setSuccess('Logic page published successfully!');
       setTimeout(() => {
         router.push('/admin/logic-pages');
       }, 2000);
+
     } catch (err) {
-      setError('Failed to publish: ' + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // ==================== RENDER ====================
   return (
     <AdminLayout>
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Create Logic Page</h1>
-          <p className="text-gray-400">Build custom functionality with AI assistance</p>
+          <h1 className="text-3xl font-bold text-gray-900">Create New Logic Page</h1>
+          <p className="text-gray-600 mt-2">Build a complete logic page with AI assistance</p>
         </div>
 
         {/* Progress Steps */}
         <div className="mb-8">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
-            {[
-              { num: 1, label: 'Basic Info' },
-              { num: 2, label: 'Inputs' },
-              { num: 3, label: 'Backend' },
-              { num: 4, label: 'Test' },
-              { num: 5, label: 'Frontend' },
-              { num: 6, label: 'Publish' }
-            ].map((s, idx) => (
-              <div key={s.num} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all ${
-                      step >= s.num
-                        ? 'bg-primary text-white shadow-lg shadow-primary/50'
-                        : 'bg-surface-neutral text-gray-500'
-                    }`}
-                  >
-                    {s.num}
-                  </div>
-                  <div className="text-xs mt-2 text-gray-400">{s.label}</div>
+          <div className="flex items-center justify-between">
+            {['Basic Info', 'Description', 'Inputs', 'Backend', 'Frontend', 'Result Page', 'Publish'].map((label, index) => (
+              <div key={index} className="flex items-center">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                  step > index + 1 ? 'bg-green-500 text-white' :
+                  step === index + 1 ? 'bg-blue-500 text-white' :
+                  'bg-gray-300 text-gray-600'
+                }`}>
+                  {step > index + 1 ? '✓' : index + 1}
                 </div>
-                {idx < 5 && (
-                  <div
-                    className={`h-1 flex-1 mx-2 transition-all ${
-                      step > s.num ? 'bg-primary' : 'bg-surface-neutral'
-                    }`}
-                  />
-                )}
+                <div className="ml-2 text-sm font-medium">{label}</div>
+                {index < 6 && <div className="w-12 h-1 bg-gray-300 mx-2"></div>}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Notifications */}
+        {/* Error/Success Messages */}
         {error && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500 rounded-lg text-red-400 flex items-start gap-3">
-            <span className="text-xl">⚠️</span>
-            <div className="flex-1">{error}</div>
-            <button onClick={() => setError('')} className="text-red-400 hover:text-red-300">✕</button>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded">
+            {error}
           </div>
         )}
-
         {success && (
-          <div className="mb-6 p-4 bg-green-500/20 border border-green-500 rounded-lg text-green-400 flex items-start gap-3">
-            <span className="text-xl">✅</span>
-            <div className="flex-1">{success}</div>
-            <button onClick={() => setSuccess('')} className="text-green-400 hover:text-green-300">✕</button>
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded">
+            {success}
           </div>
         )}
 
-        {/* STEP 1: BASIC INFO */}
-        {step === 1 && (
-          <div className="bg-surface-neutral border border-border rounded-xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-6">📝 Basic Information</h2>
+        {/* Step Content */}
+        <div className="bg-white rounded-lg shadow-lg p-8">
 
-            <div className="space-y-6">
-              <div>
-                <label className="block text-white mb-2 font-medium">Title *</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
-                  placeholder="e.g., Email Validator, Price Calculator, Data Transformer"
-                  className="w-full px-4 py-3 bg-surface border border-border rounded-lg text-white focus:border-primary outline-none"
-                />
-                <p className="text-sm text-gray-400 mt-1">A clear, descriptive title</p>
-              </div>
+          {/* STEP 1: Basic Info */}
+          {step === 1 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Step 1: Basic Information</h2>
 
-              <div>
-                <label className="block text-white mb-2 font-medium">Slug *</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">/api/logic/</span>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Page Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., Email Validator"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Page Slug *
+                  </label>
                   <input
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    placeholder="email-validator"
-                    className="flex-1 px-4 py-3 bg-surface border border-border rounded-lg text-white font-mono focus:border-primary outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., email-validator"
                   />
+                  <p className="mt-1 text-sm text-gray-500">
+                    URL: /logic/{slug}
+                  </p>
                 </div>
-                <p className="text-sm text-gray-400 mt-1">URL-friendly identifier (lowercase, hyphens only)</p>
               </div>
 
-              <div>
-                <label className="block text-white mb-2 font-medium">Description *</label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe what this logic page does. Be detailed! Example: 'This page validates email addresses, checks for disposable domains, and verifies MX records. Users input an email and get a detailed validation report.'"
-                  rows={6}
-                  className="w-full px-4 py-3 bg-surface border border-border rounded-lg text-white focus:border-primary outline-none"
-                />
-                <p className="text-sm text-gray-400 mt-1">
-                  💡 The more detail you provide, the better AI can help build your logic
-                </p>
-              </div>
-
-              <div className="flex gap-4 pt-4 border-t border-border">
+              <div className="mt-8 flex justify-between">
                 <button
                   onClick={() => router.push('/admin/logic-pages')}
-                  className="px-6 py-3 bg-surface border border-border rounded-lg text-white hover:bg-surface-hovered"
+                  className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleStep1Submit}
-                  disabled={loading || !title || !slug || !description}
-                  className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  onClick={handleStep1Next}
+                  className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                 >
-                  {loading && (
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                  )}
-                  Continue to Inputs →
+                  Next
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* STEP 2: CONFIGURE INPUTS */}
-        {step === 2 && (
-          <div className="bg-surface-neutral border border-border rounded-xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-2">⚙️ Configure Inputs</h2>
-            <p className="text-gray-400 mb-6">
-              AI analyzed your description and suggested these inputs. Review and modify as needed.
-            </p>
+          {/* STEP 2: Description */}
+          {step === 2 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Step 2: Describe Your Logic Page</h2>
+              <p className="text-gray-600 mb-6">
+                Provide a detailed description of what this logic page should do. The AI will use this context to suggest input fields and help build your backend function.
+              </p>
 
-            {aiReasoning && (
-              <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <p className="text-sm text-blue-300">
-                  <strong>AI Reasoning:</strong> {aiReasoning}
-                </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Detailed Description *
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={10}
+                  className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Describe in detail what this logic page should do. For example:&#10;&#10;This page should validate email addresses. It should check if the email format is correct, verify the domain exists, and optionally check if it's a disposable email address. The user should input an email address and get back whether it's valid or not, along with details about why it might be invalid."
+                />
               </div>
-            )}
 
-            <div className="space-y-4 mb-6">
-              {inputs.map((input, idx) => (
-                <div key={idx} className="bg-surface border border-border rounded-lg p-4 hover:border-primary/50 transition-colors">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-white text-sm mb-1 font-medium">Field Name</label>
-                      <input
-                        type="text"
-                        value={input.name}
-                        onChange={(e) => updateInput(idx, 'name', e.target.value)}
-                        placeholder="field_name"
-                        className="w-full px-3 py-2 bg-surface-neutral border border-border rounded text-white text-sm font-mono"
-                      />
+              <div className="mt-8 flex justify-between">
+                <button
+                  onClick={() => setStep(1)}
+                  className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleStep2Next}
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {loading ? 'Processing...' : 'Get AI Suggestions'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: Configure Inputs */}
+          {step === 3 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Step 3: Configure Input Fields</h2>
+
+              {aiReasoning && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded">
+                  <h3 className="font-semibold text-blue-900 mb-2">AI Reasoning:</h3>
+                  <p className="text-blue-800 text-sm">{aiReasoning}</p>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {inputs.map((input, index) => (
+                  <div key={index} className="p-4 border border-gray-200 rounded">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Field Name
+                        </label>
+                        <input
+                          type="text"
+                          value={input.input_name}
+                          onChange={(e) => handleInputChange(index, 'input_name', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Label
+                        </label>
+                        <input
+                          type="text"
+                          value={input.input_label}
+                          onChange={(e) => handleInputChange(index, 'input_label', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Type
+                        </label>
+                        <select
+                          value={input.input_type}
+                          onChange={(e) => handleInputChange(index, 'input_type', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded"
+                        >
+                          <option value="text">Text</option>
+                          <option value="number">Number</option>
+                          <option value="email">Email</option>
+                          <option value="url">URL</option>
+                          <option value="textarea">Textarea</option>
+                          <option value="select">Select</option>
+                          <option value="checkbox">Checkbox</option>
+                          <option value="date">Date</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Placeholder
+                        </label>
+                        <input
+                          type="text"
+                          value={input.input_placeholder || ''}
+                          onChange={(e) => handleInputChange(index, 'input_placeholder', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-white text-sm mb-1 font-medium">Label</label>
-                      <input
-                        type="text"
-                        value={input.label}
-                        onChange={(e) => updateInput(idx, 'label', e.target.value)}
-                        placeholder="Field Label"
-                        className="w-full px-3 py-2 bg-surface-neutral border border-border rounded text-white text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-white text-sm mb-1 font-medium">Type</label>
-                      <select
-                        value={input.type}
-                        onChange={(e) => updateInput(idx, 'type', e.target.value)}
-                        className="w-full px-3 py-2 bg-surface-neutral border border-border rounded text-white text-sm"
-                      >
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="email">Email</option>
-                        <option value="url">URL</option>
-                        <option value="textarea">Textarea</option>
-                        <option value="select">Select</option>
-                        <option value="checkbox">Checkbox</option>
-                        <option value="date">Date</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-white text-sm mb-1 font-medium">Placeholder</label>
-                      <input
-                        type="text"
-                        value={input.placeholder}
-                        onChange={(e) => updateInput(idx, 'placeholder', e.target.value)}
-                        placeholder="Enter placeholder..."
-                        className="w-full px-3 py-2 bg-surface-neutral border border-border rounded text-white text-sm"
-                      />
-                    </div>
-                    <div className="col-span-2 flex items-center justify-between">
-                      <label className="flex items-center gap-2 text-white text-sm">
+                    <div className="mt-3 flex items-center justify-between">
+                      <label className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={input.required}
-                          onChange={(e) => updateInput(idx, 'required', e.target.checked)}
-                          className="rounded"
+                          checked={input.is_required}
+                          onChange={(e) => handleInputChange(index, 'is_required', e.target.checked)}
+                          className="mr-2"
                         />
-                        Required field
+                        <span className="text-sm text-gray-700">Required</span>
                       </label>
                       <button
-                        onClick={() => removeInput(idx)}
-                        className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
+                        onClick={() => handleRemoveInput(index)}
+                        className="text-red-600 hover:text-red-800 text-sm"
                       >
-                        🗑️ Remove
+                        Remove
                       </button>
                     </div>
                   </div>
-                </div>
-              ))}
-
-              {inputs.length === 0 && (
-                <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
-                  <p className="text-gray-400 mb-4">No inputs yet. Add your first input field!</p>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={addInput}
-              className="px-4 py-2 bg-surface border border-primary text-primary rounded-lg hover:bg-primary/10 transition-colors mb-6"
-            >
-              + Add Input Field
-            </button>
-
-            <div className="flex gap-4 pt-4 border-t border-border">
-              <button
-                onClick={() => setStep(1)}
-                className="px-6 py-3 bg-surface border border-border rounded-lg text-white hover:bg-surface-hovered"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={handleStep2Submit}
-                disabled={loading || inputs.length === 0}
-                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 flex items-center gap-2"
-              >
-                {loading && (
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                )}
-                Continue to Backend →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: BUILD BACKEND */}
-        {step === 3 && (
-          <div className="grid grid-cols-2 gap-6">
-            {/* AI Chat Panel */}
-            <div className="bg-surface-neutral border border-border rounded-xl p-6">
-              <h3 className="text-xl font-bold text-white mb-4">🤖 AI Assistant</h3>
-
-              <div className="bg-surface border border-border rounded-lg p-4 h-96 overflow-y-auto mb-4">
-                {backendChat.length === 0 && (
-                  <div className="text-center text-gray-400 mt-20">
-                    <p className="mb-2">👋 Hi! I'll help you build the backend function.</p>
-                    <p className="text-sm">Ask me to generate the function or describe what it should do!</p>
-                  </div>
-                )}
-
-                {backendChat.map((msg, idx) => (
-                  <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : ''}`}>
-                    <div
-                      className={`inline-block px-4 py-2 rounded-lg max-w-lg ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-white'
-                          : 'bg-surface-hovered text-white'
-                      }`}
-                    >
-                      <div className="text-sm whitespace-pre-wrap">{msg.message}</div>
-                    </div>
-                  </div>
                 ))}
-                <div ref={chatEndRef} />
               </div>
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={backendMessage}
-                  onChange={(e) => setBackendMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !loading && sendBackendMessage()}
-                  placeholder="Ask AI to generate the backend function..."
-                  className="flex-1 px-4 py-2 bg-surface border border-border rounded-lg text-white"
-                  disabled={loading}
-                />
-                <button
-                  onClick={sendBackendMessage}
-                  disabled={loading || !backendMessage.trim()}
-                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50"
-                >
-                  {loading ? '...' : 'Send'}
-                </button>
-              </div>
+              <button
+                onClick={handleAddInput}
+                className="mt-4 px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50"
+              >
+                + Add Input Field
+              </button>
 
-              <div className="mt-4 text-sm text-gray-400">
-                <p>💡 Try asking:</p>
-                <ul className="ml-4 mt-2 space-y-1">
-                  <li>• "Generate the backend function"</li>
-                  <li>• "Add error handling"</li>
-                  <li>• "Modify the validation logic"</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Code Editor Panel */}
-            <div className="bg-surface-neutral border border-border rounded-xl p-6">
-              <h3 className="text-xl font-bold text-white mb-4">💻 Backend Function</h3>
-
-              <textarea
-                value={backendFunction}
-                onChange={(e) => setBackendFunction(e.target.value)}
-                placeholder="async function executeLogic(inputs) {
-  // Your backend logic here
-  // inputs contains: { field_name: value, ... }
-
-  return {
-    success: true,
-    data: { result: 'your result' },
-    message: 'Success message'
-  };
-}"
-                rows={18}
-                className="w-full px-4 py-3 bg-surface border border-border rounded-lg text-white font-mono text-sm"
-              />
-
-              <div className="flex gap-2 mt-4">
+              <div className="mt-8 flex justify-between">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-4 py-2 bg-surface border border-border rounded-lg text-white hover:bg-surface-hovered"
+                  className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
                 >
-                  ← Back
+                  Back
                 </button>
                 <button
-                  onClick={saveBackendAndContinue}
-                  disabled={loading || !backendFunction}
-                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50"
+                  onClick={handleStep3Next}
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
                 >
-                  Save & Continue to Testing →
+                  {loading ? 'Saving...' : 'Next: Build Backend'}
                 </button>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* STEP 4: TEST FUNCTION */}
-        {step === 4 && (
-          <div className="bg-surface-neutral border border-border rounded-xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-6">🧪 Test Backend Function</h2>
+          {/* STEP 4: Backend Builder */}
+          {step === 4 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Step 4: Build Backend Function</h2>
 
-            <div className="grid grid-cols-2 gap-6">
-              {/* Test Inputs */}
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-4">Test Inputs</h3>
-                <div className="space-y-4">
-                  {inputs.map((input, idx) => (
-                    <div key={idx}>
-                      <label className="block text-white text-sm mb-1">{input.label}</label>
-                      <input
-                        type={input.type === 'number' ? 'number' : 'text'}
-                        value={testInputs[input.name] || ''}
-                        onChange={(e) => setTestInputs({ ...testInputs, [input.name]: e.target.value })}
-                        placeholder={input.placeholder}
-                        className="w-full px-3 py-2 bg-surface border border-border rounded text-white"
-                      />
-                    </div>
-                  ))}
+              <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded">
+                <p className="text-sm text-gray-700">
+                  <strong>Route:</strong> <code className="bg-gray-200 px-2 py-1 rounded">{backendRoute}</code>
+                </p>
+                <p className="text-sm text-gray-700 mt-2">
+                  <strong>Method:</strong> POST
+                </p>
+                <p className="text-sm text-gray-700 mt-2">
+                  <strong>Input Variables:</strong> {inputs.map(i => i.input_name).join(', ')}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                {/* AI Chat */}
+                <div>
+                  <h3 className="font-semibold mb-4">Chat with AI</h3>
+                  <div className="border border-gray-300 rounded p-4 h-96 overflow-y-auto mb-4 bg-gray-50">
+                    {backendChat.length === 0 && (
+                      <p className="text-gray-500 text-sm">
+                        Start chatting with AI to design your backend function.
+                        Example: "Create a function that validates an email address"
+                      </p>
+                    )}
+                    {backendChat.map((msg, idx) => (
+                      <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                        <div className={`inline-block p-3 rounded-lg ${
+                          msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-white border border-gray-300'
+                        }`}>
+                          <pre className="whitespace-pre-wrap text-sm">{msg.content}</pre>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={backendMessage}
+                      onChange={(e) => setBackendMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleBackendChat()}
+                      placeholder="Ask AI to help build your function..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded"
+                    />
+                    <button
+                      onClick={handleBackendChat}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                    >
+                      Send
+                    </button>
+                  </div>
                 </div>
 
-                <button
-                  onClick={testBackendFunction}
-                  disabled={loading}
-                  className="w-full mt-4 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {loading && <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                  🧪 Run Test
-                </button>
-              </div>
+                {/* Code Editor */}
+                <div>
+                  <h3 className="font-semibold mb-4">Backend Function Code</h3>
+                  <textarea
+                    value={backendFunction}
+                    onChange={(e) => setBackendFunction(e.target.value)}
+                    rows={15}
+                    className="w-full px-4 py-2 border border-gray-300 rounded font-mono text-sm"
+                    placeholder="async function executeLogic(inputs) { ... }"
+                  />
 
-              {/* Test Results */}
-              <div>
-                <h3 className="text-lg font-semibold text-white mb-4">Test Results</h3>
-
-                {!testResult && !testError && (
-                  <div className="text-center text-gray-400 py-12 border-2 border-dashed border-border rounded-lg">
-                    <p>Run a test to see results</p>
-                  </div>
-                )}
-
-                {testError && (
-                  <div className="p-4 bg-red-500/20 border border-red-500 rounded-lg">
-                    <p className="text-red-400 font-mono text-sm whitespace-pre-wrap">{testError}</p>
-                  </div>
-                )}
-
-                {testResult && (
-                  <div className="p-4 bg-green-500/20 border border-green-500 rounded-lg">
-                    <p className="text-green-400 font-semibold mb-2">✅ Success!</p>
-                    <pre className="text-white font-mono text-sm whitespace-pre-wrap bg-surface p-3 rounded overflow-x-auto">
-                      {JSON.stringify(testResult, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-6 border-t border-border mt-6">
-              <button
-                onClick={() => setStep(3)}
-                className="px-6 py-3 bg-surface border border-border rounded-lg text-white hover:bg-surface-hovered"
-              >
-                ← Back to Backend
-              </button>
-              <button
-                onClick={() => setStep(5)}
-                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark"
-              >
-                Continue to Frontend →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 5: BUILD FRONTEND */}
-        {step === 5 && (
-          <div className="space-y-6">
-            {/* AI Chat */}
-            <div className="bg-surface-neutral border border-border rounded-xl p-6">
-              <h3 className="text-xl font-bold text-white mb-4">🤖 AI Frontend Builder</h3>
-
-              <div className="bg-surface border border-border rounded-lg p-4 h-64 overflow-y-auto mb-4">
-                {frontendChat.length === 0 && (
-                  <div className="text-center text-gray-400 mt-16">
-                    <p className="mb-2">👋 I'll help you build a beautiful frontend!</p>
-                    <p className="text-sm">Ask me to generate the HTML, CSS, and JavaScript!</p>
-                  </div>
-                )}
-
-                {frontendChat.map((msg, idx) => (
-                  <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : ''}`}>
-                    <div
-                      className={`inline-block px-4 py-2 rounded-lg max-w-3xl ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-white'
-                          : 'bg-surface-hovered text-white'
-                      }`}
+                  {/* Test Panel */}
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Test Function</h4>
+                    {inputs.map((input, idx) => (
+                      <div key={idx} className="mb-2">
+                        <label className="block text-sm text-gray-700">{input.input_label}</label>
+                        <input
+                          type={input.input_type}
+                          onChange={(e) => setTestInputs({...testInputs, [input.input_name]: e.target.value})}
+                          className="w-full px-3 py-1 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    ))}
+                    <button
+                      onClick={handleTestFunction}
+                      disabled={loading}
+                      className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-sm disabled:opacity-50"
                     >
-                      <div className="text-sm whitespace-pre-wrap">{msg.message}</div>
-                    </div>
+                      Run Test
+                    </button>
+                    {testResult && (
+                      <div className="mt-3 p-3 bg-gray-100 rounded">
+                        <pre className="text-xs">{JSON.stringify(testResult, null, 2)}</pre>
+                      </div>
+                    )}
                   </div>
-                ))}
-                <div ref={chatEndRef} />
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={frontendMessage}
-                  onChange={(e) => setFrontendMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && !loading && sendFrontendMessage()}
-                  placeholder="Ask AI to generate the frontend..."
-                  className="flex-1 px-4 py-2 bg-surface border border-border rounded-lg text-white"
-                  disabled={loading}
-                />
+              <div className="mt-8 flex justify-between">
                 <button
-                  onClick={sendFrontendMessage}
-                  disabled={loading || !frontendMessage.trim()}
-                  className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50"
+                  onClick={() => setStep(3)}
+                  className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
                 >
-                  {loading ? '...' : 'Send'}
+                  Back
+                </button>
+                <button
+                  onClick={handleStep4Next}
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Next: Build Frontend'}
                 </button>
               </div>
             </div>
+          )}
 
-            {/* Code Editors */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-surface-neutral border border-border rounded-xl p-4">
-                <h4 className="text-white font-semibold mb-2">HTML</h4>
-                <textarea
-                  value={frontendHtml}
-                  onChange={(e) => setFrontendHtml(e.target.value)}
-                  rows={12}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded text-white font-mono text-xs"
-                />
+          {/* STEP 5: Frontend Builder */}
+          {step === 5 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Step 5: Build Frontend Interface</h2>
+
+              <div className="grid grid-cols-2 gap-6">
+                {/* AI Chat */}
+                <div>
+                  <h3 className="font-semibold mb-4">Chat with AI</h3>
+                  <div className="border border-gray-300 rounded p-4 h-96 overflow-y-auto mb-4 bg-gray-50">
+                    {frontendChat.length === 0 && (
+                      <p className="text-gray-500 text-sm">
+                        Start chatting with AI to design your frontend.
+                        Example: "Create a clean form with all input fields and a submit button"
+                      </p>
+                    )}
+                    {frontendChat.map((msg, idx) => (
+                      <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                        <div className={`inline-block p-3 rounded-lg ${
+                          msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-white border border-gray-300'
+                        }`}>
+                          <pre className="whitespace-pre-wrap text-sm">{msg.content}</pre>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={frontendMessage}
+                      onChange={(e) => setFrontendMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleFrontendChat()}
+                      placeholder="Ask AI to help build your frontend..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded"
+                    />
+                    <button
+                      onClick={handleFrontendChat}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+
+                {/* Code Editors */}
+                <div>
+                  <div className="mb-4">
+                    <h3 className="font-semibold mb-2">HTML</h3>
+                    <textarea
+                      value={frontendHtml}
+                      onChange={(e) => setFrontendHtml(e.target.value)}
+                      rows={6}
+                      className="w-full px-4 py-2 border border-gray-300 rounded font-mono text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <h3 className="font-semibold mb-2">CSS</h3>
+                    <textarea
+                      value={frontendCss}
+                      onChange={(e) => setFrontendCss(e.target.value)}
+                      rows={6}
+                      className="w-full px-4 py-2 border border-gray-300 rounded font-mono text-sm"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2">JavaScript</h3>
+                    <textarea
+                      value={frontendJs}
+                      onChange={(e) => setFrontendJs(e.target.value)}
+                      rows={6}
+                      className="w-full px-4 py-2 border border-gray-300 rounded font-mono text-sm"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-surface-neutral border border-border rounded-xl p-4">
-                <h4 className="text-white font-semibold mb-2">CSS</h4>
-                <textarea
-                  value={frontendCss}
-                  onChange={(e) => setFrontendCss(e.target.value)}
-                  rows={12}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded text-white font-mono text-xs"
-                />
-              </div>
-
-              <div className="bg-surface-neutral border border-border rounded-xl p-4">
-                <h4 className="text-white font-semibold mb-2">JavaScript</h4>
-                <textarea
-                  value={frontendJs}
-                  onChange={(e) => setFrontendJs(e.target.value)}
-                  rows={12}
-                  className="w-full px-3 py-2 bg-surface border border-border rounded text-white font-mono text-xs"
-                />
+              <div className="mt-8 flex justify-between">
+                <button
+                  onClick={() => setStep(4)}
+                  className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleStep5Next}
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Next: Build Result Page'}
+                </button>
               </div>
             </div>
+          )}
 
-            <div className="flex gap-4">
-              <button
-                onClick={() => setStep(4)}
-                className="px-6 py-3 bg-surface border border-border rounded-lg text-white hover:bg-surface-hovered"
-              >
-                ← Back
-              </button>
-              <button
-                onClick={saveFrontendAndContinue}
-                disabled={loading || !frontendHtml}
-                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50"
-              >
-                Save & Preview →
-              </button>
-            </div>
-          </div>
-        )}
+          {/* STEP 6: Result Page Builder */}
+          {step === 6 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Step 6: Build Result Page</h2>
+              <p className="text-gray-600 mb-6">
+                Design how the results should be displayed after the backend function executes.
+              </p>
 
-        {/* STEP 6: PREVIEW & PUBLISH */}
-        {step === 6 && (
-          <div className="bg-surface-neutral border border-border rounded-xl p-8">
-            <h2 className="text-2xl font-bold text-white mb-6">🚀 Preview & Publish</h2>
+              <div className="grid grid-cols-2 gap-6">
+                {/* AI Chat */}
+                <div>
+                  <h3 className="font-semibold mb-4">Chat with AI</h3>
+                  <div className="border border-gray-300 rounded p-4 h-96 overflow-y-auto mb-4 bg-gray-50">
+                    {resultChat.length === 0 && (
+                      <p className="text-gray-500 text-sm">
+                        Start chatting with AI to design your result page.
+                        Example: "Create a result page that shows success/error states and displays the data nicely"
+                      </p>
+                    )}
+                    {resultChat.map((msg, idx) => (
+                      <div key={idx} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                        <div className={`inline-block p-3 rounded-lg ${
+                          msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-white border border-gray-300'
+                        }`}>
+                          <pre className="whitespace-pre-wrap text-sm">{msg.content}</pre>
+                        </div>
+                      </div>
+                    ))}
+                    <div ref={chatEndRef} />
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={resultMessage}
+                      onChange={(e) => setResultMessage(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleResultChat()}
+                      placeholder="Ask AI to help build your result page..."
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded"
+                    />
+                    <button
+                      onClick={handleResultChat}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
 
-            {/* Preview Mode Selector */}
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setPreviewMode('desktop')}
-                className={`px-4 py-2 rounded-lg ${previewMode === 'desktop' ? 'bg-primary text-white' : 'bg-surface text-gray-400'}`}
-              >
-                💻 Desktop
-              </button>
-              <button
-                onClick={() => setPreviewMode('tablet')}
-                className={`px-4 py-2 rounded-lg ${previewMode === 'tablet' ? 'bg-primary text-white' : 'bg-surface text-gray-400'}`}
-              >
-                📱 Tablet
-              </button>
-              <button
-                onClick={() => setPreviewMode('mobile')}
-                className={`px-4 py-2 rounded-lg ${previewMode === 'mobile' ? 'bg-primary text-white' : 'bg-surface text-gray-400'}`}
-              >
-                📱 Mobile
-              </button>
-            </div>
+                {/* Code Editors */}
+                <div>
+                  <div className="mb-4">
+                    <h3 className="font-semibold mb-2">HTML</h3>
+                    <textarea
+                      value={resultHtml}
+                      onChange={(e) => setResultHtml(e.target.value)}
+                      rows={6}
+                      className="w-full px-4 py-2 border border-gray-300 rounded font-mono text-sm"
+                    />
+                  </div>
+                  <div className="mb-4">
+                    <h3 className="font-semibold mb-2">CSS</h3>
+                    <textarea
+                      value={resultCss}
+                      onChange={(e) => setResultCss(e.target.value)}
+                      rows={6}
+                      className="w-full px-4 py-2 border border-gray-300 rounded font-mono text-sm"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-2">JavaScript</h3>
+                    <textarea
+                      value={resultJs}
+                      onChange={(e) => setResultJs(e.target.value)}
+                      rows={6}
+                      className="w-full px-4 py-2 border border-gray-300 rounded font-mono text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
 
-            {/* Preview */}
-            <div className="bg-surface border border-border rounded-lg p-4 mb-6">
-              <div
-                className={`mx-auto bg-white transition-all ${
-                  previewMode === 'mobile' ? 'max-w-sm' : previewMode === 'tablet' ? 'max-w-2xl' : 'max-w-full'
-                }`}
-                style={{ minHeight: '500px' }}
-              >
-                <iframe
-                  srcDoc={`
-                    <!DOCTYPE html>
-                    <html>
-                      <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <style>${frontendCss}</style>
-                      </head>
-                      <body>
-                        ${frontendHtml}
-                        <script>${frontendJs}</script>
-                      </body>
-                    </html>
-                  `}
-                  className="w-full h-full border-0"
-                  style={{ minHeight: '500px' }}
-                  title="Preview"
-                />
+              <div className="mt-8 flex justify-between">
+                <button
+                  onClick={() => setStep(5)}
+                  className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleStep6Next}
+                  disabled={loading}
+                  className="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Next: Preview & Publish'}
+                </button>
               </div>
             </div>
+          )}
 
-            {/* Publish Info */}
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-6 mb-6">
-              <h3 className="text-white font-semibold mb-3">📍 Your Logic Page Will Be Available At:</h3>
-              <div className="space-y-2">
-                <p className="text-blue-300 font-mono">
-                  <strong>Frontend:</strong> /logic/{slug}
-                </p>
-                <p className="text-blue-300 font-mono">
-                  <strong>API Endpoint:</strong> {backendRoute}
-                </p>
+          {/* STEP 7: Preview & Publish */}
+          {step === 7 && (
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Step 7: Preview & Publish</h2>
+
+              <div className="mb-6">
+                <div className="flex gap-4 mb-4">
+                  <button
+                    onClick={() => setPreviewMode('desktop')}
+                    className={`px-4 py-2 rounded ${previewMode === 'desktop' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                  >
+                    Desktop
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode('tablet')}
+                    className={`px-4 py-2 rounded ${previewMode === 'tablet' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                  >
+                    Tablet
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode('mobile')}
+                    className={`px-4 py-2 rounded ${previewMode === 'mobile' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                  >
+                    Mobile
+                  </button>
+                </div>
+
+                <div className={`border border-gray-300 rounded p-4 mx-auto ${
+                  previewMode === 'mobile' ? 'max-w-sm' :
+                  previewMode === 'tablet' ? 'max-w-2xl' :
+                  'max-w-full'
+                }`}>
+                  <h3 className="font-semibold mb-4">Frontend Preview</h3>
+                  <div className="border border-gray-200 rounded p-4 bg-white">
+                    <style dangerouslySetInnerHTML={{ __html: frontendCss }} />
+                    <div dangerouslySetInnerHTML={{ __html: frontendHtml }} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-6 rounded border border-gray-200">
+                <h3 className="font-semibold mb-4">Summary</h3>
+                <div className="space-y-2 text-sm">
+                  <p><strong>Title:</strong> {title}</p>
+                  <p><strong>Slug:</strong> {slug}</p>
+                  <p><strong>Route:</strong> {backendRoute}</p>
+                  <p><strong>Input Fields:</strong> {inputs.length}</p>
+                  <p><strong>Backend Function:</strong> {backendFunction ? '✓ Configured' : '✗ Missing'}</p>
+                  <p><strong>Frontend:</strong> {frontendHtml ? '✓ Configured' : '✗ Missing'}</p>
+                  <p><strong>Result Page:</strong> {resultHtml ? '✓ Configured' : '✗ Missing'}</p>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-between">
+                <button
+                  onClick={() => setStep(6)}
+                  className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handlePublish}
+                  disabled={loading}
+                  className="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                >
+                  {loading ? 'Publishing...' : 'Publish Logic Page'}
+                </button>
               </div>
             </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={() => setStep(5)}
-                className="px-6 py-3 bg-surface border border-border rounded-lg text-white hover:bg-surface-hovered"
-              >
-                ← Back to Frontend
-              </button>
-              <button
-                onClick={publishLogicPage}
-                disabled={loading}
-                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading && <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />}
-                🚀 Publish Logic Page
-              </button>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </AdminLayout>
   );

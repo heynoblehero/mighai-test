@@ -75,7 +75,12 @@ function handleUpdateLogicPage(req, res, id) {
     frontend_html,
     frontend_css,
     frontend_js,
-    result_page_config,
+    result_page_html,
+    result_page_css,
+    result_page_js,
+    backend_chat_history,
+    frontend_chat_history,
+    result_chat_history,
     ai_context
   } = req.body;
 
@@ -117,9 +122,29 @@ function handleUpdateLogicPage(req, res, id) {
     updates.push('frontend_js = ?');
     params.push(frontend_js);
   }
-  if (result_page_config !== undefined) {
-    updates.push('result_page_config = ?');
-    params.push(typeof result_page_config === 'string' ? result_page_config : JSON.stringify(result_page_config));
+  if (result_page_html !== undefined) {
+    updates.push('result_page_html = ?');
+    params.push(result_page_html);
+  }
+  if (result_page_css !== undefined) {
+    updates.push('result_page_css = ?');
+    params.push(result_page_css);
+  }
+  if (result_page_js !== undefined) {
+    updates.push('result_page_js = ?');
+    params.push(result_page_js);
+  }
+  if (backend_chat_history !== undefined) {
+    updates.push('backend_chat_history = ?');
+    params.push(typeof backend_chat_history === 'string' ? backend_chat_history : JSON.stringify(backend_chat_history));
+  }
+  if (frontend_chat_history !== undefined) {
+    updates.push('frontend_chat_history = ?');
+    params.push(typeof frontend_chat_history === 'string' ? frontend_chat_history : JSON.stringify(frontend_chat_history));
+  }
+  if (result_chat_history !== undefined) {
+    updates.push('result_chat_history = ?');
+    params.push(typeof result_chat_history === 'string' ? result_chat_history : JSON.stringify(result_chat_history));
   }
   if (ai_context !== undefined) {
     updates.push('ai_context = ?');
