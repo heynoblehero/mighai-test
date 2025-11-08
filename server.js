@@ -670,87 +670,6 @@ db.serialize(() => {
     FOREIGN KEY (user_id) REFERENCES users (id)
   )`);
 
-  // Logic Pages System - Advanced dynamic page generator
-  db.run(`CREATE TABLE IF NOT EXISTS logic_pages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    slug TEXT UNIQUE NOT NULL,
-    description TEXT,
-    access_level TEXT DEFAULT 'public' CHECK (access_level IN ('public', 'subscriber')),
-    frontend_config TEXT NOT NULL, -- JSON: layout, styling, components
-    backend_config TEXT NOT NULL,  -- JSON: AI prompts, processing logic
-    result_config TEXT NOT NULL,   -- JSON: result display settings
-    is_active BOOLEAN DEFAULT true,
-    store_results BOOLEAN DEFAULT true,
-    store_analytics BOOLEAN DEFAULT true,
-    max_executions_per_user INTEGER DEFAULT 10,
-    created_by INTEGER NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users (id)
-  )`);
-
-  // Input fields configuration for logic pages
-  db.run(`CREATE TABLE IF NOT EXISTS logic_page_fields (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logic_page_id INTEGER NOT NULL,
-    field_name TEXT NOT NULL,
-    field_label TEXT NOT NULL,
-    field_type TEXT NOT NULL CHECK (field_type IN ('text', 'textarea', 'email', 'number', 'select', 'file', 'checkbox', 'radio')),
-    field_options TEXT, -- JSON: for select/radio options, validation rules
-    is_required BOOLEAN DEFAULT false,
-    placeholder TEXT,
-    help_text TEXT,
-    order_index INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
-  )`);
-
-  // Store execution results and analytics
-  db.run(`CREATE TABLE IF NOT EXISTS logic_page_executions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logic_page_id INTEGER NOT NULL,
-    user_id INTEGER,
-    session_id TEXT, -- For anonymous users
-    input_data TEXT NOT NULL, -- JSON: user inputs
-    output_data TEXT NOT NULL, -- JSON: AI/processing results
-    processing_time INTEGER, -- milliseconds
-    tokens_used INTEGER DEFAULT 0,
-    cost_estimate DECIMAL(10,4) DEFAULT 0.0000,
-    status TEXT DEFAULT 'success' CHECK (status IN ('success', 'error', 'timeout')),
-    error_message TEXT,
-    ip_address TEXT,
-    user_agent TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
-
-  // Version history for logic pages
-  db.run(`CREATE TABLE IF NOT EXISTS logic_page_versions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logic_page_id INTEGER NOT NULL,
-    version_number INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    frontend_config TEXT NOT NULL,
-    backend_config TEXT NOT NULL,
-    result_config TEXT NOT NULL,
-    change_summary TEXT,
-    created_by INTEGER NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE,
-    FOREIGN KEY (created_by) REFERENCES users (id),
-    UNIQUE(logic_page_id, version_number)
-  )`);
-
-  // Tags system for logic pages
-  db.run(`CREATE TABLE IF NOT EXISTS logic_page_tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logic_page_id INTEGER NOT NULL,
-    tag_name TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
-  )`);
 
   // Add new columns to existing support_messages table if they don't exist
   db.run(`ALTER TABLE support_messages ADD COLUMN customer_email TEXT`, (err) => {
@@ -5085,16 +5004,7 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
       return handle(req, res);
     }
     
-    // First check for Logic Pages
-    db.get('SELECT * FROM logic_pages WHERE slug = ? AND is_active = 1', [slug], (err, logicPage) => {
-      if (err) return res.status(500).send('Server error');
-      
-      if (logicPage) {
-        // Logic page found - render using Next.js dynamic component
-        return nextApp.render(req, res, '/logic-page/[slug]', { slug });
-      }
-      
-      // No logic page found, check regular pages
+    // Check regular pages
       db.get('SELECT * FROM pages WHERE slug = ? AND is_published = true', [slug], (err, page) => {
         if (err) return res.status(500).send('Server error');
         if (!page) {
@@ -5127,7 +5037,6 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
       res.setHeader('Content-Type', 'text/html');
       res.send(html);
       });
-    });
   });
 
   // Default Next.js handler for unmatched routes

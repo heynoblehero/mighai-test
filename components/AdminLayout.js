@@ -32,7 +32,6 @@ const navigation = [
     items: [
       { name: 'Pages', href: '/admin/pages', icon: 'file-text', current: false },
       { name: 'Reserved Pages', href: '/admin/reserved-pages', icon: 'palette', current: false },
-      { name: 'Logic Pages', href: '/admin/logic-pages', icon: 'zap', current: false, badge: 'AI' },
       { name: 'Blog', href: '/admin/blog', icon: 'edit', current: false },
     ]
   },
@@ -47,7 +46,6 @@ const navigation = [
   {
     name: 'Development',
     items: [
-      { name: 'Backend Design', href: '/admin/backend-design', icon: 'cpu', current: false, badge: 'AI' },
       { name: 'Integrations', href: '/admin/integrations', icon: 'zap', current: false },
     ]
   },

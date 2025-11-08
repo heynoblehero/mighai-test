@@ -163,10 +163,10 @@ export default function EndpointDashboard() {
               {refreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
             </button>
             <button
-              onClick={() => window.location.href = '/admin/logic-pages'}
+              onClick={() => window.location.href = '/admin/integrations'}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
-              + Create New Endpoint
+              + Manage Integrations
             </button>
           </div>
         </div>
@@ -239,10 +239,10 @@ export default function EndpointDashboard() {
                   : 'Create your first AI-powered endpoint to get started'}
               </p>
               <button
-                onClick={() => window.location.href = '/admin/logic-pages'}
+                onClick={() => window.location.href = '/admin/integrations'}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
               >
-                Create First Endpoint
+                Manage Integrations
               </button>
             </div>
           ) : (

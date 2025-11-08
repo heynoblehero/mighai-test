@@ -58,7 +58,7 @@ IMPORTANT REQUIREMENTS:
 
 STYLE GUIDELINES:
 - Use a modern, clean design aesthetic
-- Implement proper spacing and typography hierarchy  
+- Implement proper spacing and typography hierarchy
 - Use tasteful colors and gradients
 - Add subtle animations and transitions
 - Ensure excellent mobile responsiveness
@@ -72,6 +72,39 @@ Generate ONLY the complete HTML code. Do not include markdown code blocks or exp
 
 The HTML should be production-ready and include all necessary CSS and JavaScript inline.`;
 
+const SEPARATED_GENERATION_PROMPT = `You are an expert web developer. Create a modern, responsive web page with SEPARATED HTML, CSS, and JavaScript files.
+
+IMPORTANT: Generate three separate code blocks in this EXACT format:
+
+===HTML===
+[Your HTML code here - clean semantic HTML without any <style> or <script> tags]
+===CSS===
+[Your CSS code here - all styles needed for the page]
+===JS===
+[Your JavaScript code here - all functionality, or leave empty if not needed]
+
+REQUIREMENTS:
+1. HTML: Clean semantic structure, no inline styles, no <style> or <script> tags
+2. CSS: Complete styling including responsive design, animations, and modern aesthetics
+3. JavaScript: Any interactive functionality (can be empty if not needed)
+4. Make it fully responsive and mobile-friendly
+5. Use modern design principles and best practices
+6. Include proper accessibility attributes
+
+STYLE GUIDELINES:
+- Modern, clean design aesthetic
+- Proper spacing and typography hierarchy
+- Tasteful colors and gradients
+- Subtle animations and transitions
+- Excellent mobile responsiveness
+- Interactive elements where appropriate
+
+USER REQUEST: {userPrompt}
+
+ADDITIONAL CONTEXT: {context}
+
+Remember: Output must be in the exact format with ===HTML===, ===CSS===, and ===JS=== markers.`;
+
 export default async function handler(req, res) {
   console.log('🤖 AI Generate Page API called');
   console.log('🤖 Method:', req.method);
@@ -82,11 +115,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt, context = '', iteration_type = 'new' } = req.body;
+  const { prompt, context = '', iteration_type = 'new', separate_assets = false } = req.body;
   console.log('🤖 Extracted params:');
   console.log('  - prompt:', prompt);
-  console.log('  - context length:', context?.length || 0);
+  console.log('  - context length:', typeof context === 'string' ? context?.length : JSON.stringify(context).length);
   console.log('  - iteration_type:', iteration_type);
+  console.log('  - separate_assets:', separate_assets);
 
   if (!prompt) {
     console.log('❌ Missing prompt');
@@ -124,24 +158,63 @@ export default async function handler(req, res) {
       });
     }
 
-    // Prepare the prompt based on iteration type
+    // Prepare the prompt based on iteration type and asset separation
     console.log('🤖 Preparing prompt for iteration type:', iteration_type);
-    
-    let finalPrompt = PAGE_GENERATION_PROMPT
-      .replace('{userPrompt}', prompt)
-      .replace('{context}', context);
+    console.log('🤖 Separate assets requested:', separate_assets);
 
-    if (iteration_type === 'modify' && context) {
-      console.log('🤖 Using modification prompt with existing context');
-      finalPrompt = `You are modifying an existing web page. Here is the current HTML code:
+    let finalPrompt;
+    let contextString = typeof context === 'string' ? context : JSON.stringify(context);
 
-${context}
+    if (separate_assets) {
+      finalPrompt = SEPARATED_GENERATION_PROMPT
+        .replace('{userPrompt}', prompt)
+        .replace('{context}', contextString || 'None');
+
+      if (iteration_type === 'modify' && context) {
+        console.log('🤖 Using modification prompt with existing context (separated assets)');
+        const htmlContext = typeof context === 'object' ? context.html || '' : context;
+        const cssContext = typeof context === 'object' ? context.css || '' : '';
+        const jsContext = typeof context === 'object' ? context.js || '' : '';
+
+        finalPrompt = `You are modifying an existing web page with separated assets. Here is the current code:
+
+CURRENT HTML:
+${htmlContext}
+
+CURRENT CSS:
+${cssContext}
+
+CURRENT JAVASCRIPT:
+${jsContext}
+
+USER MODIFICATION REQUEST: ${prompt}
+
+Please modify the code according to the user's request. Return the updated code in this EXACT format:
+
+===HTML===
+[Updated HTML code]
+===CSS===
+[Updated CSS code]
+===JS===
+[Updated JavaScript code]`;
+      }
+    } else {
+      finalPrompt = PAGE_GENERATION_PROMPT
+        .replace('{userPrompt}', prompt)
+        .replace('{context}', contextString);
+
+      if (iteration_type === 'modify' && context) {
+        console.log('🤖 Using modification prompt with existing context');
+        finalPrompt = `You are modifying an existing web page. Here is the current HTML code:
+
+${contextString}
 
 USER MODIFICATION REQUEST: ${prompt}
 
 Please modify the existing code according to the user's request. Maintain the overall structure but make the requested changes. Return the complete modified HTML code.
 
 Generate ONLY the complete HTML code. Do not include markdown code blocks or explanations.`;
+      }
     }
     
     console.log('🤖 Final prompt length:', finalPrompt.length);
@@ -187,11 +260,31 @@ Generate ONLY the complete HTML code. Do not include markdown code blocks or exp
 
     const generatedCode = data.content?.[0]?.text || '';
     const tokensUsed = data.usage?.output_tokens || 0;
-    
+
     console.log('🤖 Generation results:');
     console.log('  - Generated code length:', generatedCode.length);
     console.log('  - Tokens used:', tokensUsed);
-    
+
+    // Parse separated assets if requested
+    let html_code = generatedCode;
+    let css_code = '';
+    let js_code = '';
+
+    if (separate_assets) {
+      console.log('🤖 Parsing separated assets...');
+      const htmlMatch = generatedCode.match(/===HTML===\s*([\s\S]*?)(?====CSS===|$)/);
+      const cssMatch = generatedCode.match(/===CSS===\s*([\s\S]*?)(?====JS===|$)/);
+      const jsMatch = generatedCode.match(/===JS===\s*([\s\S]*?)$/);
+
+      html_code = htmlMatch ? htmlMatch[1].trim() : '';
+      css_code = cssMatch ? cssMatch[1].trim() : '';
+      js_code = jsMatch ? jsMatch[1].trim() : '';
+
+      console.log('  - HTML length:', html_code.length);
+      console.log('  - CSS length:', css_code.length);
+      console.log('  - JS length:', js_code.length);
+    }
+
     // Estimate cost (approximate pricing for Claude 3.5 Sonnet)
     const estimatedCost = (tokensUsed / 1000) * 0.015; // $15 per million tokens (output)
     console.log('  - Estimated cost: $', estimatedCost);
@@ -204,7 +297,7 @@ Generate ONLY the complete HTML code. Do not include markdown code blocks or exp
     const newMonthlyUsage = (settings.current_month_usage || 0) + estimatedCost;
     settings.current_month_usage = newMonthlyUsage;
     console.log('🤖 Updated monthly usage to: $', newMonthlyUsage);
-    
+
     try {
       fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
       console.log('✅ Settings file updated successfully');
@@ -214,14 +307,20 @@ Generate ONLY the complete HTML code. Do not include markdown code blocks or exp
 
     const responseData = {
       success: true,
-      html_code: generatedCode,
+      html_code: html_code,
+      html_content: html_code,
+      css_code: css_code,
+      css_content: css_code,
+      js_code: js_code,
+      js_content: js_code,
       tokens_used: tokensUsed,
       estimated_cost: estimatedCost,
       monthly_usage: settings.current_month_usage,
-      iteration_type
+      iteration_type,
+      separated: separate_assets
     };
-    
-    console.log('✅ Sending successful response:', JSON.stringify(responseData, null, 2));
+
+    console.log('✅ Sending successful response');
     res.status(200).json(responseData);
 
   } catch (error) {

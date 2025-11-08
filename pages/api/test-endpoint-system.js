@@ -10,7 +10,6 @@ export default async function handler(req, res) {
         endpointGenerator: '✅ AI Endpoint Generator API',
         deploymentSystem: '✅ Dynamic API Manager',
         endpointRegistry: '✅ Endpoint Registry',
-        logicPagesIntegration: '✅ Logic Pages Integration',
         testingFunctionality: '✅ Real API Testing',
         managementDashboard: '✅ Endpoint Dashboard',
         timestamp: new Date().toISOString()
@@ -20,10 +19,10 @@ export default async function handler(req, res) {
         'Real-time code generation and deployment',
         'Comprehensive endpoint management',
         'Integrated testing and monitoring',
-        'Unified interface for both logic pages and API endpoints'
+        'Unified interface for API endpoint development'
       ],
       usage: {
-        createEndpoint: 'Visit /admin/logic-pages and select "API Endpoint"',
+        createEndpoint: 'Visit /admin/backend-design to create API endpoints',
         manageEndpoints: 'Visit /admin/endpoint-dashboard',
         testEndpoints: 'Use the built-in testing functionality'
       }
