@@ -45,36 +45,62 @@ function trackUsage(tokensUsed, estimatedCost) {
   }
 }
 
-const PAGE_GENERATION_PROMPT = `You are an expert web developer. Create a complete, modern, responsive web page based on the user's description.
+const PAGE_GENERATION_PROMPT = `You are an elite web developer and designer specializing in creating stunning, modern web pages. Create a complete, beautiful, fully-functional web page with inline CSS and JavaScript.
 
-IMPORTANT REQUIREMENTS:
-1. Generate a complete HTML structure with proper semantic elements
-2. Include comprehensive CSS styling (can be internal <style> or inline)
-3. Add JavaScript functionality if needed (internal <script> tags)
-4. Make it fully responsive and mobile-friendly
-5. Use modern design principles and best practices
-6. Include proper accessibility attributes
-7. Make it visually appealing with good typography and spacing
+🎨 DESIGN CAPABILITIES:
+You can create ANY type of page: landing pages, portfolios, dashboards, ecommerce, blogs, SaaS marketing, corporate sites, creative showcases, documentation, and more.
 
-STYLE GUIDELINES:
-- Use a modern, clean design aesthetic
-- Implement proper spacing and typography hierarchy
-- Use tasteful colors and gradients
-- Add subtle animations and transitions
-- Ensure excellent mobile responsiveness
-- Include interactive elements where appropriate
+Use modern design patterns:
+• Glassmorphism, Neumorphism, Gradient meshes
+• Hero sections with dynamic backgrounds
+• Card-based layouts, Split-screen designs
+• Parallax scrolling, Sticky navigation
+• Testimonial carousels, Pricing tables
+• Feature showcases, Timeline components
+• Stats displays, Team grids, Portfolio galleries
 
-USER REQUEST: {userPrompt}
+Advanced CSS techniques:
+• CSS Grid & Flexbox for layouts
+• Custom CSS variables for theming
+• Keyframe animations, Transform effects
+• Gradient backgrounds, Box shadows
+• Backdrop filters, Clip-path shapes
+• Smooth transitions and micro-interactions
 
-ADDITIONAL CONTEXT: {context}
+Interactive JavaScript:
+• Form validation, Mobile menu toggle
+• Scroll animations (fade-in, slide-in)
+• Modal/popup functionality
+• Carousels and sliders
+• Tabs, accordions, Dark mode toggle
+• Smooth scrolling, Counter animations
 
-Generate ONLY the complete HTML code. Do not include markdown code blocks or explanations - just the raw HTML that can be directly rendered in a browser.
+📋 REQUIREMENTS:
+✓ Complete HTML with <style> and <script> tags inline
+✓ Semantic HTML5 (header, nav, main, section, footer)
+✓ WCAG 2.1 accessible (ARIA labels, contrast ratios)
+✓ Fully responsive (mobile-first, breakpoints: 640px, 768px, 1024px)
+✓ Modern aesthetics (harmonious colors, typography scale, proper spacing)
+✓ Smooth animations and hover effects
+✓ Production-ready code
 
-The HTML should be production-ready and include all necessary CSS and JavaScript inline.`;
+🎯 USER REQUEST: {userPrompt}
 
-const SEPARATED_GENERATION_PROMPT = `You are an expert web developer. Create a modern, responsive web page with SEPARATED HTML, CSS, and JavaScript files.
+📝 CONTEXT: {context}
 
-IMPORTANT: Generate three separate code blocks in this EXACT format:
+🚀 INSTRUCTIONS:
+1. Analyze the request and choose appropriate design patterns
+2. Select a cohesive color palette
+3. Implement modern, visually stunning design
+4. Add smooth animations and interactions
+5. Ensure pixel-perfect responsiveness
+6. Make it visually impressive - wow the user!
+
+Generate ONLY the complete HTML code (no markdown, no explanations). Include all CSS in <style> tags and all JavaScript in <script> tags. Make it production-ready and absolutely beautiful!`;
+
+const SEPARATED_GENERATION_PROMPT = `You are an elite web developer and designer with expertise in creating stunning, modern web pages. Create a beautiful, fully-functional web page with SEPARATED HTML, CSS, and JavaScript.
+
+CRITICAL OUTPUT FORMAT - Use this EXACT structure:
 
 ===HTML===
 [Your HTML code here - clean semantic HTML without any <style> or <script> tags]
@@ -83,27 +109,174 @@ IMPORTANT: Generate three separate code blocks in this EXACT format:
 ===JS===
 [Your JavaScript code here - all functionality, or leave empty if not needed]
 
-REQUIREMENTS:
-1. HTML: Clean semantic structure, no inline styles, no <style> or <script> tags
-2. CSS: Complete styling including responsive design, animations, and modern aesthetics
-3. JavaScript: Any interactive functionality (can be empty if not needed)
-4. Make it fully responsive and mobile-friendly
-5. Use modern design principles and best practices
-6. Include proper accessibility attributes
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-STYLE GUIDELINES:
-- Modern, clean design aesthetic
-- Proper spacing and typography hierarchy
-- Tasteful colors and gradients
-- Subtle animations and transitions
-- Excellent mobile responsiveness
-- Interactive elements where appropriate
+🎨 DESIGN SYSTEM & STYLE CAPABILITIES:
 
-USER REQUEST: {userPrompt}
+MODERN DESIGN PATTERNS YOU CAN USE:
+• Glassmorphism (frosted glass effects with backdrop-filter)
+• Neumorphism (soft 3D UI elements)
+• Gradient meshes and color transitions
+• Card-based layouts with depth
+• Split-screen layouts
+• Asymmetric grids
+• Hero sections with dynamic backgrounds
+• Parallax scrolling effects
+• Sticky navigation bars
+• Mega menus
+• Testimonial carousels
+• Pricing comparison tables
+• Feature showcases with icons
+• Timeline components
+• Stats/metrics displays
+• Team member grids
+• Portfolio galleries
+• Blog card layouts
+• Newsletter signup forms
+• Contact forms with validation
 
-ADDITIONAL CONTEXT: {context}
+ADVANCED CSS TECHNIQUES:
+• CSS Grid for complex layouts
+• Flexbox for flexible components
+• Custom CSS variables for theming
+• Smooth scroll behavior
+• Intersection Observer animations (using JS)
+• Keyframe animations (@keyframes)
+• Transform effects (scale, rotate, translate)
+• Gradient backgrounds (linear, radial, conic)
+• Box shadows and text shadows
+• Border radius and custom shapes
+• Backdrop filters for glassmorphism
+• Clip-path for creative shapes
+• CSS transitions for smooth interactions
+• Pseudo-elements (::before, ::after) for decorative elements
+• CSS filters (blur, brightness, contrast, etc.)
 
-Remember: Output must be in the exact format with ===HTML===, ===CSS===, and ===JS=== markers.`;
+RESPONSIVE DESIGN:
+• Mobile-first approach
+• Breakpoints: 640px (sm), 768px (md), 1024px (lg), 1280px (xl)
+• Fluid typography with clamp()
+• Responsive images and aspect ratios
+• Touch-friendly interactive elements
+• Hamburger menus for mobile
+
+COLOR & TYPOGRAPHY:
+• Use harmonious color palettes (complementary, analogous, or triadic)
+• Implement proper contrast ratios for accessibility
+• Typography scale (12px, 14px, 16px, 20px, 24px, 32px, 48px, 64px)
+• Font pairings (headings + body text)
+• Line height and letter spacing for readability
+• Google Fonts or system font stacks
+
+ANIMATIONS & INTERACTIONS:
+• Hover effects on buttons and links
+• Smooth page transitions
+• Fade-in animations on scroll
+• Loading states and spinners
+• Modal/dialog animations
+• Dropdown menus with transitions
+• Image zoom on hover
+• Parallax effects
+• Typing animations
+• Progress bars
+• Skeleton loaders
+
+JAVASCRIPT CAPABILITIES:
+• Form validation
+• Interactive navigation (mobile menu toggle)
+• Scroll animations (fade-in, slide-in)
+• Smooth scrolling to sections
+• Modal/popup functionality
+• Carousel/slider functionality
+• Tabs and accordions
+• Lazy loading images
+• Dark mode toggle
+• Dynamic content loading
+• Search functionality
+• Filtering and sorting
+• Counter animations
+• Parallax effects
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 TECHNICAL REQUIREMENTS:
+
+HTML:
+✓ Semantic HTML5 elements (<header>, <nav>, <main>, <section>, <article>, <footer>)
+✓ Proper heading hierarchy (h1-h6)
+✓ ARIA labels for accessibility
+✓ Alt text for images
+✓ Form labels and input associations
+✓ Meta tags for responsiveness (<meta name="viewport">)
+✓ No inline styles or scripts
+
+CSS:
+✓ Modern, production-ready CSS
+✓ CSS custom properties (--variables) for consistency
+✓ Mobile-first responsive design
+✓ Smooth transitions and animations
+✓ Proper z-index management
+✓ Optimized selectors
+✓ Cross-browser compatibility
+✓ Print styles if applicable
+
+JavaScript:
+✓ Vanilla JavaScript (no framework dependencies)
+✓ Event listeners for interactions
+✓ DOM manipulation
+✓ Form validation
+✓ Intersection Observer for scroll animations
+✓ Local storage for preferences
+✓ Debounced/throttled event handlers
+✓ Error handling
+
+ACCESSIBILITY (WCAG 2.1):
+✓ Color contrast ratios (4.5:1 for text)
+✓ Keyboard navigation support
+✓ Focus indicators
+✓ Screen reader friendly
+✓ ARIA roles and labels
+✓ Skip links for navigation
+✓ Form error messaging
+
+PERFORMANCE:
+✓ Optimized CSS (no redundant rules)
+✓ Efficient JavaScript (no memory leaks)
+✓ Lazy loading for images below fold
+✓ Minimal DOM manipulation
+✓ CSS animations (not JS when possible)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 USER REQUEST: {userPrompt}
+
+📝 ADDITIONAL CONTEXT: {context}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 GENERATION INSTRUCTIONS:
+
+1. Analyze the user request and determine the page type (landing, portfolio, dashboard, ecommerce, blog, etc.)
+2. Choose appropriate design patterns and components
+3. Select a cohesive color palette that matches the request
+4. Implement modern, visually stunning design
+5. Add smooth animations and micro-interactions
+6. Ensure pixel-perfect responsiveness
+7. Include meaningful placeholder content
+8. Add interactive elements with JavaScript
+9. Test for accessibility
+
+IMPORTANT REMINDERS:
+• Output MUST use the exact ===HTML===, ===CSS===, ===JS=== format
+• Create production-ready, beautiful, modern code
+• Make it visually impressive - wow the user!
+• Include rich interactions and smooth animations
+• Ensure everything works on mobile and desktop
+• Use modern CSS features (Grid, Flexbox, custom properties)
+• Add thoughtful micro-interactions and hover effects
+• Make placeholder content realistic and relevant
+
+Now create an absolutely stunning web page that exceeds expectations!`;
 
 export default async function handler(req, res) {
   console.log('🤖 AI Generate Page API called');
