@@ -32,7 +32,6 @@ const navigation = [
     items: [
       { name: 'Pages', href: '/admin/pages', icon: 'file-text', current: false },
       { name: 'Reserved Pages', href: '/admin/reserved-pages', icon: 'palette', current: false },
-      { name: 'Logic Pages', href: '/admin/logic-pages', icon: 'code', current: false },
       { name: 'Blog', href: '/admin/blog', icon: 'edit', current: false },
     ]
   },
@@ -42,6 +41,14 @@ const navigation = [
       { name: 'Campaigns', href: '/admin/campaigns', icon: 'mail', current: false },
       { name: 'Templates', href: '/admin/email-templates', icon: 'file-text', current: false },
       { name: 'Email Settings', href: '/admin/email-settings', icon: 'mail-settings', current: false },
+    ]
+  },
+  {
+    name: 'Backend',
+    items: [
+      { name: 'Database', href: '/admin/database', icon: 'database', current: false },
+      { name: 'API Routes', href: '/admin/backend/routes', icon: 'code', current: false },
+      { name: 'Server Logs', href: '/admin/backend/server-logs', icon: 'file-text', current: false },
     ]
   },
   {
@@ -139,6 +146,11 @@ const icons = {
   'refresh': (
     <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+  ),
+  'database': (
+    <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
     </svg>
   ),
   'shopping-cart': (
