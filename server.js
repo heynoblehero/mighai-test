@@ -776,6 +776,69 @@ db.serialize(() => {
     source TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Login Attempts Tracking Table - For Brute Force Protection
+  db.run(`CREATE TABLE IF NOT EXISTS login_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL,
+    ip_address TEXT NOT NULL,
+    user_agent TEXT,
+    device_fingerprint TEXT,
+    attempt_type TEXT NOT NULL CHECK (attempt_type IN ('admin', 'customer', 'otp')),
+    success BOOLEAN DEFAULT 0,
+    failure_reason TEXT,
+    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email_attempted (email, attempted_at),
+    INDEX idx_ip_attempted (ip_address, attempted_at)
+  )`);
+
+  // Security Events Table - For Audit Logging
+  db.run(`CREATE TABLE IF NOT EXISTS security_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    severity TEXT NOT NULL CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    user_id INTEGER,
+    email TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    device_fingerprint TEXT,
+    event_data TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id),
+    INDEX idx_event_type_created (event_type, created_at),
+    INDEX idx_severity_created (severity, created_at)
+  )`);
+
+  // Add account lockout columns to users table
+  db.run(`ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding failed_login_attempts column:', err);
+    }
+  });
+
+  db.run(`ALTER TABLE users ADD COLUMN locked_until DATETIME NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding locked_until column:', err);
+    }
+  });
+
+  db.run(`ALTER TABLE users ADD COLUMN last_failed_login DATETIME NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding last_failed_login column:', err);
+    }
+  });
+
+  db.run(`ALTER TABLE users ADD COLUMN last_successful_login DATETIME NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding last_successful_login column:', err);
+    }
+  });
+
+  db.run(`ALTER TABLE users ADD COLUMN last_login_ip TEXT NULL`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Error adding last_login_ip column:', err);
+    }
+  });
 });
 
 // Passport configuration

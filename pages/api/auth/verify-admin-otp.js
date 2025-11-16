@@ -3,10 +3,30 @@ const path = require('path');
 const emailService = require('../../../services/emailService');
 const telegramOTPService = require('../../../services/telegramOTPService');
 const { createSession } = require('../../../lib/session');
+const {
+  otpVerifyRateLimiter,
+  recordSuccessfulLogin,
+  recordFailedLogin,
+  getClientIp,
+  createDeviceFingerprint,
+  logSecurityEvent,
+} = require('../../../lib/security');
 
 const dbPath = path.join(process.cwd(), 'site_builder.db');
 
-export default async function handler(req, res) {
+// Helper to run middleware in Next.js API routes
+function runMiddleware(req, res, fn) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+}
+
+async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -17,7 +37,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Email/User ID, OTP, and username are required' });
   }
 
+  try {
+    // Apply OTP verification rate limiting
+    await runMiddleware(req, res, otpVerifyRateLimiter);
+  } catch (error) {
+    // Rate limit triggered
+    return;
+  }
+
   const db = new sqlite3.Database(dbPath);
+  const ip = getClientIp(req);
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  const deviceInfo = createDeviceFingerprint(req);
 
   try {
     // Get user first to check 2FA settings
@@ -34,7 +65,18 @@ export default async function handler(req, res) {
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'User not found or invalid permissions' });
+      await logSecurityEvent('otp_verify_user_not_found', 'medium', {
+        email: email || 'unknown',
+        userId,
+        username,
+        ip,
+        userAgent,
+        deviceFingerprint: deviceInfo.fingerprint,
+      });
+      return res.status(401).json({
+        error: 'User not found or invalid permissions',
+        code: 'USER_NOT_FOUND'
+      });
     }
 
     // Check if user has 2FA enabled
@@ -52,8 +94,33 @@ export default async function handler(req, res) {
     }
 
     if (!isValidOTP) {
-      return res.status(401).json({ error: 'Invalid or expired OTP' });
+      // Record failed OTP verification
+      await recordFailedLogin(user.email, ip, userAgent, 'otp', 'Invalid or expired OTP', deviceInfo.fingerprint);
+      await logSecurityEvent('failed_otp_verification', 'medium', {
+        email: user.email,
+        userId: user.id,
+        ip,
+        userAgent,
+        deviceFingerprint: deviceInfo.fingerprint,
+      });
+      return res.status(401).json({
+        error: 'Invalid or expired OTP',
+        code: 'INVALID_OTP'
+      });
     }
+
+    // OTP is valid - record successful login
+    await recordSuccessfulLogin(user.email, ip, userAgent, 'admin', deviceInfo.fingerprint);
+    await logSecurityEvent('admin_login_success', 'low', {
+      email: user.email,
+      userId: user.id,
+      ip,
+      userAgent,
+      deviceFingerprint: deviceInfo.fingerprint,
+      browser: deviceInfo.browser,
+      os: deviceInfo.os,
+      device: deviceInfo.device,
+    });
 
     // Create secure session
     const sessionUser = {
@@ -78,8 +145,19 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Admin OTP verification error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    await logSecurityEvent('otp_verification_system_error', 'high', {
+      error: error.message,
+      stack: error.stack,
+      ip,
+      userAgent,
+    });
+    res.status(500).json({
+      error: 'Internal server error',
+      code: 'INTERNAL_ERROR'
+    });
   } finally {
     db.close();
   }
 }
+
+export default handler;
