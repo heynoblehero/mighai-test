@@ -3,12 +3,16 @@ import { useRouter } from 'next/router';
 import AdminLayout from '../../../components/AdminLayout';
 
 export default function NewEnhancedPage() {
-  const [mode, setMode] = useState('visual'); // 'visual', 'ai', 'code'
+  const [mode, setMode] = useState('ai'); // 'visual', 'ai', 'code'
   const [currentView, setCurrentView] = useState('split'); // 'preview', 'code', 'split'
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [imageAnalysis, setImageAnalysis] = useState(null);
+  const [generationPlan, setGenerationPlan] = useState(null);
 
   const [pageData, setPageData] = useState({
     title: '',
@@ -1406,6 +1410,56 @@ ${currentSections.map(s => s.css).join('\n\n')}
     setPreviewKey(p => p + 1);
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await fetch('/api/upload-layout-image', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUploadedImage(data);
+
+        // Auto-analyze the image
+        setIsAnalyzingImage(true);
+        const analysisResponse = await fetch('/api/ai/analyze-layout-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imagePath: data.path,
+            userPrompt: currentPrompt
+          })
+        });
+
+        const analysisData = await analysisResponse.json();
+        if (analysisData.success) {
+          setImageAnalysis(analysisData.analysis);
+
+          const analysisMessage = {
+            id: Date.now(),
+            type: 'system',
+            content: `📷 Image analyzed successfully! I can see the layout structure. Ready to generate based on this design.`,
+            timestamp: new Date()
+          };
+          setChatHistory(prev => [...prev, analysisMessage]);
+        }
+        setIsAnalyzingImage(false);
+      }
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      setError('Failed to upload or analyze image');
+      setIsAnalyzingImage(false);
+    }
+  };
+
   const generateWithAI = async (prompt, isModification = false) => {
     if (!prompt.trim()) return;
 
@@ -1421,44 +1475,57 @@ ${currentSections.map(s => s.css).join('\n\n')}
     setChatHistory(prev => [...prev, userMessage]);
 
     try {
-      const response = await fetch('/api/ai/generate-page', {
+      // Use the comprehensive AI generation endpoint
+      const response = await fetch('/api/ai/generate-comprehensive-page', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: prompt,
+          userPrompt: prompt,
+          layoutAnalysis: imageAnalysis,
+          imagePath: uploadedImage?.path,
+          iteration_type: isModification ? 'modify' : 'new',
           context: isModification ? {
             html: pageData.html_content,
             css: pageData.css_content,
             js: pageData.js_content
-          } : '',
-          iteration_type: isModification ? 'modify' : 'new',
-          separate_assets: true
+          } : null
         })
       });
 
       const data = await response.json();
 
       if (data.success) {
+        // Show the AI's plan
+        if (data.plan) {
+          setGenerationPlan(data.plan);
+          const planMessage = {
+            id: Date.now() + 1,
+            type: 'plan',
+            content: `🧠 My Plan:\n\n${data.plan}`,
+            timestamp: new Date()
+          };
+          setChatHistory(prev => [...prev, planMessage]);
+        }
+
         setPageData(prev => ({
           ...prev,
-          html_content: data.html_code || data.html_content || '',
-          css_content: data.css_code || data.css_content || '',
-          js_content: data.js_code || data.js_content || ''
+          html_content: data.html_code || '',
+          css_content: data.css_code || '',
+          js_content: data.js_code || ''
         }));
         setPreviewKey(prev => prev + 1);
 
         const aiMessage = {
-          id: Date.now() + 1,
+          id: Date.now() + 2,
           type: 'ai',
-          content: isModification ? 'Page updated successfully!' : 'Page generated successfully!',
+          content: data.message || '✅ Page generated successfully with comprehensive planning!',
           timestamp: new Date()
         };
         setChatHistory(prev => [...prev, aiMessage]);
 
         if (!isModification && !pageData.title) {
-          const titleMatch = data.html_code?.match(/<title[^>]*>([^<]*)<\/title>/i) ||
-                           data.html_code?.match(/<h1[^>]*>([^<]*)<\/h1>/i);
-          const extractedTitle = titleMatch?.[1] || prompt.slice(0, 50) + '...';
+          const titleMatch = data.html_code?.match(/<h1[^>]*>([^<]*)<\/h1>/i);
+          const extractedTitle = titleMatch?.[1] || prompt.slice(0, 50);
 
           setPageData(prev => ({
             ...prev,
@@ -1476,7 +1543,7 @@ ${currentSections.map(s => s.css).join('\n\n')}
       const errorMessage = {
         id: Date.now() + 1,
         type: 'error',
-        content: 'Failed to generate page: ' + error.message,
+        content: '❌ Failed to generate page: ' + error.message,
         timestamp: new Date()
       };
       setChatHistory(prev => [...prev, errorMessage]);
@@ -1555,7 +1622,7 @@ ${currentSections.map(s => s.css).join('\n\n')}
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-3xl font-bold text-slate-100">Create New Page</h1>
-            <p className="text-slate-400 mt-1">Build advanced pages with visual components, AI, or custom code</p>
+            <p className="text-slate-400 mt-1">🚀 Build complete, professional pages with Comprehensive AI (upload layouts, describe your vision), Visual Builder, or Custom Code</p>
           </div>
           <div className="flex bg-slate-700 rounded-lg p-1">
             <button
@@ -1681,16 +1748,68 @@ ${currentSections.map(s => s.css).join('\n\n')}
             {/* AI Chat */}
             <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden flex flex-col">
               <div className="px-6 py-4 border-b border-slate-700 bg-slate-900/50">
-                <h3 className="text-lg font-semibold text-slate-200">🤖 AI Assistant</h3>
-                <p className="text-sm text-slate-400 mt-1">Describe your page and I'll build it with separated HTML, CSS, and JavaScript</p>
+                <h3 className="text-lg font-semibold text-slate-200">🤖 Comprehensive AI Assistant</h3>
+                <p className="text-sm text-slate-400 mt-1">Upload a layout image or describe your page - I'll create a complete, professional page with all sections, animations, and styling</p>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {chatHistory.length === 0 && (
                   <div className="text-center py-8">
-                    <div className="text-4xl mb-4">🎨</div>
-                    <h3 className="text-lg font-medium text-slate-200 mb-2">Ready to build!</h3>
-                    <p className="text-slate-400 text-sm">Tell me what kind of page you want to create</p>
+                    <div className="text-4xl mb-4">🎨✨</div>
+                    <h3 className="text-lg font-medium text-slate-200 mb-2">Ready to create something amazing!</h3>
+                    <p className="text-slate-400 text-sm mb-4">I can:</p>
+                    <ul className="text-slate-400 text-sm space-y-2 text-left max-w-md mx-auto">
+                      <li>📷 Analyze layout images and recreate the design</li>
+                      <li>🎯 Generate complete pages with all needed sections</li>
+                      <li>🎨 Create beautiful themes, colors, and animations</li>
+                      <li>✨ Add professional typography and spacing</li>
+                      <li>🚀 Build responsive, modern designs</li>
+                    </ul>
+
+                    {/* Image Upload Section */}
+                    <div className="mt-6 p-6 bg-slate-700/50 rounded-lg border-2 border-dashed border-slate-600">
+                      <input
+                        type="file"
+                        id="layoutImage"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={isAnalyzingImage}
+                      />
+                      <label
+                        htmlFor="layoutImage"
+                        className="cursor-pointer flex flex-col items-center"
+                      >
+                        <div className="text-5xl mb-3">📸</div>
+                        <div className="text-slate-200 font-medium mb-1">Upload Layout Image (Optional)</div>
+                        <div className="text-slate-400 text-xs">Click to upload a screenshot or design</div>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {uploadedImage && (
+                  <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+                    <div className="flex items-center space-x-3">
+                      <img
+                        src={uploadedImage.url}
+                        alt="Uploaded layout"
+                        className="w-20 h-20 object-cover rounded"
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm text-slate-200 font-medium">Layout Reference</p>
+                        <p className="text-xs text-slate-400">{uploadedImage.filename}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setUploadedImage(null);
+                          setImageAnalysis(null);
+                        }}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -1701,9 +1820,13 @@ ${currentSections.map(s => s.css).join('\n\n')}
                         ? 'bg-emerald-600 text-white'
                         : message.type === 'error'
                         ? 'bg-red-900/20 border border-red-600/30 text-red-300'
+                        : message.type === 'plan'
+                        ? 'bg-purple-900/20 border border-purple-600/30 text-purple-200'
+                        : message.type === 'system'
+                        ? 'bg-blue-900/20 border border-blue-600/30 text-blue-200'
                         : 'bg-slate-700 text-slate-200'
                     }`}>
-                      <p className="text-sm">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                       <div className="text-xs text-slate-500 mt-1">
                         {message.timestamp.toLocaleTimeString()}
                       </div>
@@ -1711,12 +1834,23 @@ ${currentSections.map(s => s.css).join('\n\n')}
                   </div>
                 ))}
 
+                {isAnalyzingImage && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] bg-blue-900/20 border border-blue-600/30 text-blue-200 rounded-lg px-4 py-3">
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                        <span className="text-sm">Analyzing layout image...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {isGenerating && (
                   <div className="flex justify-start">
                     <div className="max-w-[80%] bg-slate-700 text-slate-200 rounded-lg px-4 py-3">
                       <div className="flex items-center space-x-2">
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
-                        <span className="text-sm">Building your page...</span>
+                        <span className="text-sm">🧠 Planning and building your comprehensive page...</span>
                       </div>
                     </div>
                   </div>
@@ -1726,18 +1860,39 @@ ${currentSections.map(s => s.css).join('\n\n')}
               </div>
 
               <div className="border-t border-slate-700 p-4">
+                {/* Image Upload Button */}
+                {chatHistory.length > 0 && !uploadedImage && (
+                  <div className="mb-3">
+                    <input
+                      type="file"
+                      id="layoutImageChat"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={isAnalyzingImage}
+                    />
+                    <label
+                      htmlFor="layoutImageChat"
+                      className="cursor-pointer inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-200 text-sm transition-colors"
+                    >
+                      <span>📷</span>
+                      <span>Upload Layout Image</span>
+                    </label>
+                  </div>
+                )}
+
                 <form onSubmit={handleAISubmit} className="flex space-x-3">
                   <input
                     type="text"
                     value={currentPrompt}
                     onChange={(e) => setCurrentPrompt(e.target.value)}
-                    placeholder="Describe your page..."
+                    placeholder="Describe your page in detail..."
                     className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    disabled={isGenerating}
+                    disabled={isGenerating || isAnalyzingImage}
                   />
                   <button
                     type="submit"
-                    disabled={isGenerating || !currentPrompt.trim()}
+                    disabled={isGenerating || isAnalyzingImage || !currentPrompt.trim()}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
                   >
                     {isGenerating ? '⏳' : '🚀'}

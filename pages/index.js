@@ -1,7 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import fs from 'fs';
+import path from 'path';
+import { injectPageFunctionality } from '../utils/reserved-page-injector';
 
-export default function Home() {
+export async function getServerSideProps() {
+  // Check if there's a customized version of the landing page
+  try {
+    const reservedPagePath = path.join(process.cwd(), 'data', 'reserved-pages', 'landing-page.json');
+
+    if (fs.existsSync(reservedPagePath)) {
+      const data = fs.readFileSync(reservedPagePath, 'utf8');
+      const reservedPage = JSON.parse(data);
+
+      // Only serve customized version if it's been deployed
+      if (reservedPage.html_code && reservedPage.deployed) {
+        // Apply JavaScript injection for functionality
+        const enhancedHtml = injectPageFunctionality(reservedPage.html_code, 'landing-page');
+
+        // Serve the customized HTML with injected functionality
+        return {
+          props: {
+            useCustomPage: true,
+            customHtml: enhancedHtml
+          }
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error checking for customized landing page:', error);
+  }
+
+  // Use default React component
+  return {
+    props: {
+      useCustomPage: false
+    }
+  };
+}
+
+export default function Home({ useCustomPage, customHtml }) {
+  // If we have a custom HTML version, render it directly
+  if (useCustomPage && customHtml) {
+    return (
+      <div dangerouslySetInnerHTML={{ __html: customHtml }} />
+    );
+  }
   const [mounted, setMounted] = useState(false);
   const [currentFeature, setCurrentFeature] = useState(0);
 

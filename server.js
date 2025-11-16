@@ -696,78 +696,85 @@ db.serialize(() => {
     FOREIGN KEY (user_id) REFERENCES users (id)
   )`);
 
-  // Logic Pages System - Main table for logic pages
-  db.run(`CREATE TABLE IF NOT EXISTS logic_pages (
+  // Admin 2FA Settings Table
+  db.run(`CREATE TABLE IF NOT EXISTS admin_2fa_settings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
+    user_id INTEGER NOT NULL UNIQUE,
+    is_enabled BOOLEAN DEFAULT false,
+    method TEXT DEFAULT 'email' CHECK (method IN ('email', 'telegram', 'both')),
+    telegram_bot_token TEXT,
+    telegram_chat_id TEXT,
+    require_on_login BOOLEAN DEFAULT true,
+    require_on_database_changes BOOLEAN DEFAULT true,
+    require_on_page_changes BOOLEAN DEFAULT true,
+    require_on_route_changes BOOLEAN DEFAULT true,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+  )`);
+
+  // Admin 2FA OTP Sessions Table
+  db.run(`CREATE TABLE IF NOT EXISTS admin_2fa_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    otp_code TEXT NOT NULL,
+    method TEXT NOT NULL,
+    action_type TEXT NOT NULL,
+    action_data TEXT,
+    expires_at DATETIME NOT NULL,
+    used BOOLEAN DEFAULT false,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users (id)
+  )`);
+
+  // Custom API Routes System - Backend Routes Creator
+  db.run(`CREATE TABLE IF NOT EXISTS custom_api_routes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
     slug TEXT NOT NULL UNIQUE,
-    description TEXT NOT NULL,
-    status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'building', 'testing', 'published', 'archived')),
-    inputs_json TEXT,
-    backend_function TEXT,
-    backend_route TEXT UNIQUE,
-    frontend_html TEXT,
-    frontend_css TEXT,
-    frontend_js TEXT,
-    result_page_html TEXT,
-    result_page_css TEXT,
-    result_page_js TEXT,
-    backend_chat_history TEXT,
-    frontend_chat_history TEXT,
-    result_chat_history TEXT,
-    ai_context TEXT,
+    method TEXT NOT NULL CHECK (method IN ('GET', 'POST', 'PUT', 'DELETE', 'PATCH')),
+    description TEXT,
+    code TEXT NOT NULL,
+    packages TEXT DEFAULT '[]',
+    installed_packages TEXT DEFAULT '[]',
+    status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'inactive')),
     created_by INTEGER NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    published_at DATETIME,
+    last_executed_at DATETIME,
+    execution_count INTEGER DEFAULT 0,
     FOREIGN KEY (created_by) REFERENCES users (id)
   )`);
 
-  // Logic Page Inputs - Stores input fields for each logic page
-  db.run(`CREATE TABLE IF NOT EXISTS logic_page_inputs (
+  // API Route Execution Logs
+  db.run(`CREATE TABLE IF NOT EXISTS api_route_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logic_page_id INTEGER NOT NULL,
-    input_name TEXT NOT NULL,
-    input_label TEXT NOT NULL,
-    input_type TEXT NOT NULL CHECK (input_type IN ('text', 'number', 'email', 'url', 'textarea', 'select', 'checkbox', 'radio', 'file', 'date', 'datetime')),
-    input_placeholder TEXT,
-    input_default_value TEXT,
-    is_required BOOLEAN DEFAULT 0,
-    validation_rules TEXT,
-    options_json TEXT,
-    order_index INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
-  )`);
-
-  // Logic Page Executions - Logs all function executions
-  db.run(`CREATE TABLE IF NOT EXISTS logic_page_executions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logic_page_id INTEGER NOT NULL,
-    user_id INTEGER,
-    inputs_data TEXT NOT NULL,
-    output_data TEXT,
+    route_id INTEGER NOT NULL,
+    request_method TEXT NOT NULL,
+    request_headers TEXT,
+    request_body TEXT,
+    request_query TEXT,
+    request_params TEXT,
+    response_status INTEGER,
+    response_data TEXT,
     execution_time_ms INTEGER,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'running', 'success', 'error')),
+    console_logs TEXT DEFAULT '[]',
     error_message TEXT,
     error_stack TEXT,
     ip_address TEXT,
     user_agent TEXT,
     executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users (id)
+    FOREIGN KEY (route_id) REFERENCES custom_api_routes (id) ON DELETE CASCADE
   )`);
 
-  // Logic Page Chat History - Stores AI chat for building logic
-  db.run(`CREATE TABLE IF NOT EXISTS logic_page_chats (
+  // Server Logs
+  db.run(`CREATE TABLE IF NOT EXISTS server_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    logic_page_id INTEGER NOT NULL,
-    chat_type TEXT NOT NULL CHECK (chat_type IN ('backend', 'frontend', 'testing')),
-    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    log_type TEXT NOT NULL CHECK (log_type IN ('info', 'error', 'warning', 'debug')),
     message TEXT NOT NULL,
-    context_data TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (logic_page_id) REFERENCES logic_pages (id) ON DELETE CASCADE
+    context TEXT,
+    source TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 });
 
@@ -2625,7 +2632,7 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
     
     // Make request to Claude API
     const claudeResponse = await axios.post('https://api.anthropic.com/v1/messages', {
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 1000,
       messages: [{
         role: 'user',
@@ -2648,7 +2655,7 @@ server.${httpMethod.toLowerCase()}('${routePath}', requireSubscriberAuth, async 
 
       console.log('\n📡 === CLAUDE API REQUEST START ===');
       const requestBody = {
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4000,
         system: systemPrompt,
         messages: [
