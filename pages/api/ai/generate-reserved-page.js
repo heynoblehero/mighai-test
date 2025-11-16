@@ -87,17 +87,17 @@ function trackUsage(tokensUsed, estimatedCost) {
   }
 }
 
-function generateReservedPagePrompt(pageType, rules, userPrompt, existingCode = '', aiContext = {}, componentContext = {}) {
+function generateReservedPagePrompt(pageType, rules, userPrompt, existingCode = '', aiContext = {}, componentContext = {}, layoutAnalysis = null) {
   const pageRules = rules[pageType];
   if (!pageRules) {
     throw new Error(`No rules found for page type: ${pageType}`);
   }
-  
+
   const pageContext = aiContext.required_functions?.[pageType] || {};
   const routes = aiContext.routes || {};
   const apis = aiContext.api_endpoints || {};
   const utilities = aiContext.common_utilities || {};
-  
+
   // Component context
   const layoutType = pageRules.layout_type || 'standalone';
   const layoutSystem = componentContext.layout_system?.[layoutType];
@@ -111,6 +111,12 @@ CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE EXACTLY:
 
 ## Page Description:
 ${pageRules.description}
+
+${layoutAnalysis ? `## LAYOUT REFERENCE (from uploaded image):
+${layoutAnalysis}
+
+USE THIS LAYOUT AS INSPIRATION for the visual design, colors, spacing, and overall aesthetic. Adapt it to fit the required functionality below.
+` : ''}
 
 ## LAYOUT SYSTEM:
 ${layoutType === 'subscriber_layout' ? `
@@ -256,12 +262,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { pageType, prompt, context = '', iteration_type = 'new' } = req.body;
+  const { pageType, prompt, context = '', iteration_type = 'new', layoutAnalysis } = req.body;
   console.log('🏠 Extracted params:');
   console.log('  - pageType:', pageType);
   console.log('  - prompt:', prompt);
   console.log('  - context length:', context?.length || 0);
   console.log('  - iteration_type:', iteration_type);
+  console.log('  - layoutAnalysis:', layoutAnalysis ? 'PROVIDED' : 'NONE');
 
   if (!pageType || !prompt) {
     console.log('❌ Missing required parameters');
@@ -330,9 +337,12 @@ export default async function handler(req, res) {
 
     // Generate the specialized prompt for this page type
     console.log('🏠 Generating specialized prompt for page type:', pageType);
-    const finalPrompt = generateReservedPagePrompt(pageType, rules, prompt, context, aiContext, componentContext);
+    const finalPrompt = generateReservedPagePrompt(pageType, rules, prompt, context, aiContext, componentContext, layoutAnalysis);
     console.log('🏠 Generated prompt length:', finalPrompt.length);
     console.log('🏠 First 200 chars of prompt:', finalPrompt.substring(0, 200) + '...');
+    if (layoutAnalysis) {
+      console.log('🏠 Layout analysis included in prompt');
+    }
 
     // Call Claude API
     console.log('🏠 Making API call to Claude...');

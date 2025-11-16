@@ -18,7 +18,11 @@ export default function ReservedPageCustomizer() {
   const [versions, setVersions] = useState([]);
   const [showVersions, setShowVersions] = useState(false);
   const [deploying, setDeploying] = useState(false);
-  
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [imageAnalysis, setImageAnalysis] = useState(null);
+  const [viewMode, setViewMode] = useState('preview'); // 'preview' or 'code'
+
   const previewRef = useRef(null);
   const chatEndRef = useRef(null);
 
@@ -86,6 +90,56 @@ export default function ReservedPageCustomizer() {
     }
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await fetch('/api/upload-layout-image', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUploadedImage(data);
+
+        // Auto-analyze the image
+        setIsAnalyzingImage(true);
+        const analysisResponse = await fetch('/api/ai/analyze-layout-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imagePath: data.path,
+            userPrompt: currentPrompt
+          })
+        });
+
+        const analysisData = await analysisResponse.json();
+        if (analysisData.success) {
+          setImageAnalysis(analysisData.analysis);
+
+          const analysisMessage = {
+            id: Date.now(),
+            type: 'system',
+            content: `📷 Image analyzed successfully! I can see the layout structure. Ready to generate based on this design.`,
+            timestamp: new Date()
+          };
+          setChatHistory(prev => [...prev, analysisMessage]);
+        }
+        setIsAnalyzingImage(false);
+      }
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      setError('Failed to upload or analyze image');
+      setIsAnalyzingImage(false);
+    }
+  };
+
   const generatePage = async (prompt, isModification = false) => {
     if (!prompt.trim()) return;
 
@@ -108,7 +162,8 @@ export default function ReservedPageCustomizer() {
           pageType: pageType,
           prompt: prompt,
           context: isModification ? currentCode : '',
-          iteration_type: isModification ? 'modify' : 'new'
+          iteration_type: isModification ? 'modify' : 'new',
+          layoutAnalysis: imageAnalysis
         })
       });
 
@@ -280,7 +335,7 @@ export default function ReservedPageCustomizer() {
         if (data.success) {
           fetchPageData();
           fetchVersions();
-          
+
           const successMessage = {
             id: Date.now(),
             type: 'system',
@@ -295,6 +350,11 @@ export default function ReservedPageCustomizer() {
         setError('Failed to restore version');
       }
     }
+  };
+
+  const handleCodeChange = (newCode) => {
+    setCurrentCode(newCode);
+    setPreviewKey(prev => prev + 1); // Refresh preview
   };
 
   if (!pageType) {
@@ -472,14 +532,59 @@ export default function ReservedPageCustomizer() {
                       </button>
                     ))}
                   </div>
+
+                  {/* Image Upload Section */}
+                  <div className="mt-6 p-6 bg-slate-700/50 rounded-lg border-2 border-dashed border-slate-600">
+                    <input
+                      type="file"
+                      id="layoutImageReserved"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={isAnalyzingImage}
+                    />
+                    <label
+                      htmlFor="layoutImageReserved"
+                      className="cursor-pointer flex flex-col items-center"
+                    >
+                      <div className="text-5xl mb-3">📸</div>
+                      <div className="text-slate-200 font-medium mb-1">Upload Layout Image (Optional)</div>
+                      <div className="text-slate-400 text-xs">Upload a reference design or screenshot</div>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {uploadedImage && (
+                <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600">
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={uploadedImage.url}
+                      alt="Uploaded layout"
+                      className="w-20 h-20 object-cover rounded"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-slate-200 font-medium">Layout Reference</p>
+                      <p className="text-xs text-slate-400">{uploadedImage.filename}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setUploadedImage(null);
+                        setImageAnalysis(null);
+                      }}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
               )}
 
               {chatHistory.map((message) => (
                 <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                    message.type === 'user' 
-                      ? 'bg-emerald-600 text-white' 
+                    message.type === 'user'
+                      ? 'bg-emerald-600 text-white'
                       : message.type === 'error'
                       ? 'bg-red-900/20 border border-red-600/30 text-red-300'
                       : message.type === 'system'
@@ -498,6 +603,17 @@ export default function ReservedPageCustomizer() {
                   </div>
                 </div>
               ))}
+
+              {isAnalyzingImage && (
+                <div className="flex justify-start">
+                  <div className="max-w-[80%] bg-blue-900/20 border border-blue-600/30 text-blue-200 rounded-lg px-4 py-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+                      <span className="text-sm">Analyzing layout image...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {isGenerating && (
                 <div className="flex justify-start">
@@ -515,6 +631,27 @@ export default function ReservedPageCustomizer() {
 
             {/* Input Area */}
             <div className="border-t border-slate-700 p-4">
+              {/* Image Upload Button */}
+              {chatHistory.length > 0 && !uploadedImage && (
+                <div className="mb-3">
+                  <input
+                    type="file"
+                    id="layoutImageReservedChat"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={isAnalyzingImage}
+                  />
+                  <label
+                    htmlFor="layoutImageReservedChat"
+                    className="cursor-pointer inline-flex items-center space-x-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 border border-slate-600 rounded-lg text-slate-200 text-sm transition-colors"
+                  >
+                    <span>📷</span>
+                    <span>Upload Layout Image</span>
+                  </label>
+                </div>
+              )}
+
               <form onSubmit={handlePromptSubmit} className="flex space-x-3">
                 <input
                   type="text"
@@ -522,11 +659,11 @@ export default function ReservedPageCustomizer() {
                   onChange={(e) => setCurrentPrompt(e.target.value)}
                   placeholder={chatHistory.length === 0 ? "Describe how you want to customize this page..." : "How would you like to modify the design?"}
                   className="flex-1 px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  disabled={isGenerating}
+                  disabled={isGenerating || isAnalyzingImage}
                 />
                 <button
                   type="submit"
-                  disabled={isGenerating || !currentPrompt.trim()}
+                  disabled={isGenerating || isAnalyzingImage || !currentPrompt.trim()}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
                   {isGenerating ? '⏳' : '🎨'}
@@ -539,33 +676,81 @@ export default function ReservedPageCustomizer() {
           <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden flex flex-col">
             <div className="px-6 py-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-slate-200 flex items-center">
-                <span className="mr-2">👁️</span>
-                Live Preview
+                <span className="mr-2">{viewMode === 'preview' ? '👁️' : '💻'}</span>
+                {viewMode === 'preview' ? 'Live Preview' : 'Code Editor'}
               </h3>
-              {currentCode && (
-                <div className="text-xs text-slate-400">
-                  {currentCode.length} characters
+              <div className="flex items-center space-x-3">
+                {currentCode && (
+                  <div className="text-xs text-slate-400">
+                    {currentCode.length} characters
+                  </div>
+                )}
+                <div className="flex bg-slate-700 rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('preview')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      viewMode === 'preview'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    👁️ Preview
+                  </button>
+                  <button
+                    onClick={() => setViewMode('code')}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      viewMode === 'code'
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    💻 Code
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
 
-            <div className="flex-1 bg-white">
-              {currentCode ? (
-                <iframe
-                  key={previewKey}
-                  ref={previewRef}
-                  srcDoc={currentCode}
-                  className="w-full h-full border-0"
-                  sandbox="allow-scripts allow-forms allow-modals"
-                  title="Page Preview"
-                />
+            <div className="flex-1 overflow-hidden">
+              {viewMode === 'preview' ? (
+                <div className="w-full h-full bg-white">
+                  {currentCode ? (
+                    <iframe
+                      key={previewKey}
+                      ref={previewRef}
+                      srcDoc={currentCode}
+                      className="w-full h-full border-0"
+                      sandbox="allow-scripts allow-forms allow-modals"
+                      title="Page Preview"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-slate-50">
+                      <div className="text-center text-slate-500">
+                        <div className="text-6xl mb-4">🎨</div>
+                        <h3 className="text-lg font-medium mb-2">No customization yet</h3>
+                        <p className="text-sm">Start customizing to see a live preview</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <div className="flex items-center justify-center h-full bg-slate-50">
-                  <div className="text-center text-slate-500">
-                    <div className="text-6xl mb-4">🎨</div>
-                    <h3 className="text-lg font-medium mb-2">No customization yet</h3>
-                    <p className="text-sm">Start customizing to see a live preview</p>
-                  </div>
+                <div className="w-full h-full bg-slate-900 p-4">
+                  {currentCode ? (
+                    <textarea
+                      value={currentCode}
+                      onChange={(e) => handleCodeChange(e.target.value)}
+                      className="w-full h-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors font-mono text-sm resize-none"
+                      placeholder="HTML code will appear here..."
+                      spellCheck="false"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center text-slate-400">
+                        <div className="text-6xl mb-4">💻</div>
+                        <h3 className="text-lg font-medium mb-2">No code yet</h3>
+                        <p className="text-sm">Generate a page to view and edit the code</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

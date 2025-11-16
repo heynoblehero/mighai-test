@@ -297,5 +297,40 @@
     "estimated_cost": 0.024075,
     "month": "2025-08",
     "type": "reserved-page-generation"
+  },
+  {
+    "timestamp": "2025-11-11T03:19:53.813Z",
+    "tokens_used": 9420,
+    "estimated_cost": 0.14129999999999998,
+    "month": "2025-11",
+    "type": "reserved-page-generation"
+  },
+  {
+    "timestamp": "2025-11-11T03:27:50.688Z",
+    "tokens_used": 8249,
+    "estimated_cost": 0.123735,
+    "month": "2025-11",
+    "type": "reserved-page-generation"
+  },
+  {
+    "timestamp": "2025-11-11T03:32:25.529Z",
+    "tokens_used": 8159,
+    "estimated_cost": 0.12238500000000001,
+    "month": "2025-11",
+    "type": "reserved-page-generation"
+  },
+  {
+    "timestamp": "2025-11-11T04:30:13.072Z",
+    "tokens_used": 10091,
+    "estimated_cost": 0.15136499999999997,
+    "month": "2025-11",
+    "type": "reserved-page-generation"
+  },
+  {
+    "timestamp": "2025-11-11T05:20:16.705Z",
+    "tokens_used": 6843,
+    "estimated_cost": 0.102645,
+    "month": "2025-11",
+    "type": "reserved-page-generation"
   }
 ]

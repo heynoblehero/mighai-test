@@ -36,8 +36,32 @@ function getReservedPage(pageType) {
   }
 }
 
+function cleanHtmlCode(htmlCode) {
+  if (!htmlCode) return htmlCode;
+
+  // Remove markdown code fences
+  let cleaned = htmlCode;
+
+  // Remove ```html at the start
+  cleaned = cleaned.replace(/^```html\s*/i, '');
+
+  // Remove ``` at the end
+  cleaned = cleaned.replace(/\s*```\s*$/, '');
+
+  // Remove any remaining code fences in the middle
+  cleaned = cleaned.replace(/```html\s*/gi, '');
+  cleaned = cleaned.replace(/```\s*/g, '');
+
+  return cleaned.trim();
+}
+
 function saveReservedPage(pageType, pageData) {
   try {
+    // Clean the HTML code if it exists
+    if (pageData.html_code) {
+      pageData.html_code = cleanHtmlCode(pageData.html_code);
+    }
+
     const filePath = path.join(RESERVED_PAGES_DIR, `${pageType}.json`);
     fs.writeFileSync(filePath, JSON.stringify(pageData, null, 2));
     return true;

@@ -31,6 +31,7 @@ export function injectPageFunctionality(htmlCode, pageType) {
     }
 
     function setLoading(button, isLoading) {
+      if (!button) return; // Guard against null/undefined buttons
       if (isLoading) {
         button.disabled = true;
         button.dataset.originalText = button.textContent;
@@ -362,36 +363,36 @@ export function injectPageFunctionality(htmlCode, pageType) {
             fetch('/api/subscribe/me'),
             fetch('/api/plans/public')
           ]);
-          
+
           if (userResponse.ok && plansResponse.ok) {
             const userData = await userResponse.json();
             const plansData = await plansResponse.json();
-            
+
             populateUserData(userData.user);
             populatePlans(plansData);
           }
         } catch (err) {
           console.error('Failed to load billing data:', err);
         }
-        
+
         function populateUserData(user) {
           // Update current plan info
           const currentPlanElements = document.querySelectorAll('[data-user="plan"], .current-plan');
           currentPlanElements.forEach(el => el.textContent = user.plan_name || 'Free');
         }
-        
+
         function populatePlans(plans) {
           // Handle upgrade buttons
           const upgradeButtons = document.querySelectorAll('[data-plan-id], .upgrade-btn');
           upgradeButtons.forEach(button => {
             button.addEventListener('click', async function(e) {
               e.preventDefault();
-              
+
               const planId = this.dataset.planId || this.getAttribute('data-plan-id');
               if (!planId) return;
-              
+
               setLoading(this, true);
-              
+
               try {
                 const response = await fetch('/api/create-checkout-session', {
                   method: 'POST',
@@ -399,7 +400,7 @@ export function injectPageFunctionality(htmlCode, pageType) {
                   body: JSON.stringify({ plan_id: planId }),
                   credentials: 'include'
                 });
-                
+
                 const data = await response.json();
                 if (response.ok) {
                   window.location.href = data.checkout_url;
@@ -412,6 +413,76 @@ export function injectPageFunctionality(htmlCode, pageType) {
                 setLoading(this, false);
               }
             });
+          });
+        }
+      });
+    </script>`,
+
+    'landing-page': `
+    <script>
+      // Override window-level checkSystemStatus if it exists
+      if (typeof window.checkSystemStatus === 'undefined') {
+        window.checkSystemStatus = async function(event) {
+          const button = event && event.target ? event.target : null;
+
+          if (button) {
+            setLoading(button, true);
+          }
+
+          try {
+            const response = await fetch('/api/health', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              if (button) {
+                const container = document.getElementById('alertContainer');
+                if (container) {
+                  container.innerHTML = '<div class="alert alert-success" style="display: block;">✅ System is healthy and ready! All services are operational.</div>';
+                }
+              }
+              updateSystemStatusBadge('System Online', true);
+            } else {
+              throw new Error('Health check failed');
+            }
+          } catch (error) {
+            console.error('System status check error:', error);
+            if (button) {
+              const container = document.getElementById('alertContainer');
+              if (container) {
+                container.innerHTML = '<div class="alert alert-error" style="display: block;">⚠️ Unable to verify system status. Please check your configuration.</div>';
+              }
+            }
+            updateSystemStatusBadge('Status Unknown', false);
+          } finally {
+            if (button) {
+              setLoading(button, false);
+            }
+          }
+        };
+      }
+
+      function updateSystemStatusBadge(text, isOnline) {
+        const statusElement = document.getElementById('systemStatus');
+        if (statusElement) {
+          statusElement.textContent = text;
+          const indicator = statusElement.previousElementSibling;
+          if (indicator && indicator.classList.contains('status-indicator')) {
+            indicator.style.background = isOnline ? '#10b981' : '#f59e0b';
+          }
+        }
+      }
+
+      // Auto-check status on page load (without button)
+      document.addEventListener('DOMContentLoaded', function() {
+        // Call without event to skip button loading states
+        if (typeof window.checkSystemStatus === 'function') {
+          window.checkSystemStatus().catch(err => {
+            console.log('Initial status check failed:', err);
           });
         }
       });
