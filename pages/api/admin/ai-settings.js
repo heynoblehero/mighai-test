@@ -11,7 +11,7 @@ if (!fs.existsSync(dataDir)) {
 
 const defaultSettings = {
   claude_api_key: '',
-  claude_model: 'claude-3-5-sonnet-20241022',
+  claude_model: 'claude-sonnet-4-5-20250929',
   max_tokens: 4000,
   temperature: 0.1,
   daytona_enabled: false,

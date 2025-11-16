@@ -4,7 +4,7 @@ import AdminLayout from '../../components/AdminLayout';
 export default function AISettings() {
   const [settings, setSettings] = useState({
     claude_api_key: '',
-    claude_model: 'claude-3-5-sonnet-20241022',
+    claude_model: 'claude-sonnet-4-5-20250929',
     max_tokens: 4000,
     temperature: 0.1,
     daytona_enabled: false,
@@ -182,7 +182,7 @@ export default function AISettings() {
                     onChange={(e) => setSettings(prev => ({ ...prev, claude_model: e.target.value }))}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
                   >
-                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Latest)</option>
+                    <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (Latest)</option>
                     <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
                     <option value="claude-3-haiku-20240307">Claude 3 Haiku (Faster)</option>
                   </select>

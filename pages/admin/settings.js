@@ -59,6 +59,20 @@ export default function AdminSettings() {
       ]
     },
     {
+      id: 'security',
+      name: 'Security & Authentication',
+      description: 'Two-factor authentication and admin security settings',
+      icon: '🔐',
+      items: [
+        {
+          title: 'Two-Factor Authentication',
+          description: 'Configure Telegram 2FA for enhanced admin security',
+          href: '/admin/security-settings',
+          action: 'Configure 2FA'
+        }
+      ]
+    },
+    {
       id: 'system',
       name: 'System Settings',
       description: 'Core system configuration and monitoring',
