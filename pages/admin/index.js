@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
-import OnboardingOverlay from '../../components/OnboardingOverlay';
+import EnhancedOnboarding from '../../components/EnhancedOnboarding';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
@@ -261,13 +261,24 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout title="Home">
-      {/* Onboarding Overlay */}
+      {/* Enhanced Onboarding Overlay */}
       {shouldShowOnboarding && (
-        <OnboardingOverlay 
+        <EnhancedOnboarding
           onComplete={handleOnboardingComplete}
           onDismiss={handleOnboardingDismiss}
         />
       )}
+
+      {/* Tutorial Access Button - Fixed Position */}
+      <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 40 }}>
+        <button
+          onClick={() => router.push('/admin/tutorial/task-manager')}
+          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full shadow-2xl hover:shadow-3xl transition-all flex items-center gap-2 font-semibold hover:scale-105"
+        >
+          <span className="text-2xl">📚</span>
+          <span>Tutorial: Build a SaaS</span>
+        </button>
+      </div>
       
       <div className={`shopify-dashboard ${shouldShowOnboarding ? 'pointer-events-none opacity-30' : ''}`}>
         {/* Header Section */}
