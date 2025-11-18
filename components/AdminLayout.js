@@ -47,6 +47,7 @@ const navigation = [
     name: 'Backend',
     items: [
       { name: 'Database', href: '/admin/database', icon: 'database', current: false },
+      { name: 'Storage', href: '/admin/storage', icon: 'hard-drive', current: false },
       { name: 'API Routes', href: '/admin/backend/routes', icon: 'code', current: false },
       { name: 'Server Logs', href: '/admin/backend/server-logs', icon: 'file-text', current: false },
     ]
@@ -151,6 +152,11 @@ const icons = {
   'database': (
     <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+    </svg>
+  ),
+  'hard-drive': (
+    <svg className="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h.01M12 16h.01" />
     </svg>
   ),
   'shopping-cart': (

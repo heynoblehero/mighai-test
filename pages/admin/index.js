@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
-import EnhancedOnboarding from '../../components/EnhancedOnboarding';
+import OnboardingModal from '../../components/OnboardingModal';
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
@@ -62,6 +62,7 @@ export default function AdminDashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('7d');
+  const [recentActivity, setRecentActivity] = useState([]);
   const router = useRouter();
 
   // Animated counters for main stats
@@ -164,12 +165,12 @@ export default function AdminDashboard() {
         fetch('/api/subscribers').catch(() => ({ ok: false })),
         fetch('/api/plans').catch(() => ({ ok: false }))
       ]);
-      
+
       const pages = pagesRes.ok ? await pagesRes.json() : [];
       const blog = blogRes.ok ? await blogRes.json() : [];
       const subscribers = subscribersRes.ok ? await subscribersRes.json() : [];
       const plans = plansRes.ok ? await plansRes.json() : [];
-      
+
       // Use real data from API calls
       setStats({
         pages: Array.isArray(pages) ? pages.length : 0,
@@ -184,17 +185,68 @@ export default function AdminDashboard() {
         bounceRate: 0,
         sessionDuration: 0
       });
-      
+
+      // Build real activity feed
+      const activities = [];
+
+      // Add recent pages
+      if (Array.isArray(pages)) {
+        pages.slice(0, 3).forEach(page => {
+          activities.push({
+            type: 'page',
+            icon: 'document',
+            title: 'Page created',
+            description: page.title || page.slug,
+            time: page.created_at || page.updatedAt || new Date().toISOString(),
+            color: 'info'
+          });
+        });
+      }
+
+      // Add recent blog posts
+      if (Array.isArray(blog)) {
+        blog.slice(0, 2).forEach(post => {
+          activities.push({
+            type: 'blog',
+            icon: 'edit',
+            title: 'Blog post published',
+            description: post.title,
+            time: post.created_at || post.publishedAt || new Date().toISOString(),
+            color: 'success'
+          });
+        });
+      }
+
+      // Add recent subscribers
+      if (Array.isArray(subscribers)) {
+        subscribers.slice(0, 2).forEach(sub => {
+          activities.push({
+            type: 'subscriber',
+            icon: 'user',
+            title: 'New subscriber',
+            description: sub.email || 'New user joined',
+            time: sub.created_at || sub.subscribedAt || new Date().toISOString(),
+            color: 'success'
+          });
+        });
+      }
+
+      // Sort by time (most recent first)
+      activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+      setRecentActivity(activities.slice(0, 5));
+
       // Update realtime data
       setRealtimeData(generateRealtimeData());
-      
+
     } catch (error) {
       console.error('Failed to fetch real stats:', error);
-      setStats({ 
+      setStats({
         pages: 0, blogPosts: 0, subscribers: 0, plans: 0,
-        revenue: 0, orders: 0, visitors: 0, conversionRate: 0, 
+        revenue: 0, orders: 0, visitors: 0, conversionRate: 0,
         avgOrderValue: 0, bounceRate: 0, sessionDuration: 0
       });
+      setRecentActivity([]);
       setRealtimeData(generateRealtimeData());
     }
   };
@@ -261,24 +313,15 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout title="Home">
-      {/* Enhanced Onboarding Overlay */}
+      {/* Onboarding Modal */}
       {shouldShowOnboarding && (
-        <EnhancedOnboarding
-          onComplete={handleOnboardingComplete}
-          onDismiss={handleOnboardingDismiss}
+        <OnboardingModal
+          isOpen={shouldShowOnboarding}
+          onClose={handleOnboardingDismiss}
+          currentStep={0}
+          onStepComplete={async () => {}}
         />
       )}
-
-      {/* Tutorial Access Button - Fixed Position */}
-      <div style={{ position: 'fixed', bottom: '2rem', right: '2rem', zIndex: 40 }}>
-        <button
-          onClick={() => router.push('/admin/tutorial/task-manager')}
-          className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-full shadow-2xl hover:shadow-3xl transition-all flex items-center gap-2 font-semibold hover:scale-105"
-        >
-          <span className="text-2xl">📚</span>
-          <span>Tutorial: Build a SaaS</span>
-        </button>
-      </div>
       
       <div className={`shopify-dashboard ${shouldShowOnboarding ? 'pointer-events-none opacity-30' : ''}`}>
         {/* Header Section */}
@@ -315,87 +358,34 @@ export default function AdminDashboard() {
           <div className="stats-grid-shopify">
             <div className="stat-card-shopify">
               <div className="stat-header">
-                <span className="stat-label">Total sales</span>
-                <div className="stat-menu">
-                  <button className="menu-button">
-                    <svg viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                    </svg>
-                  </button>
-                </div>
+                <span className="stat-label">Pages</span>
               </div>
-              <div className="stat-value">${animatedRevenue.toLocaleString()}</div>
-              <div className="stat-trend positive">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>+12% vs last week</span>
-              </div>
+              <div className="stat-value">{stats.pages}</div>
+              <div className="stat-description text-subdued">Total pages created</div>
             </div>
 
             <div className="stat-card-shopify">
               <div className="stat-header">
-                <span className="stat-label">Orders</span>
+                <span className="stat-label">Blog Posts</span>
               </div>
-              <div className="stat-value">{animatedOrders.toLocaleString()}</div>
-              <div className="stat-trend positive">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>+8% vs last week</span>
-              </div>
+              <div className="stat-value">{stats.blogPosts}</div>
+              <div className="stat-description text-subdued">Published articles</div>
             </div>
 
             <div className="stat-card-shopify">
               <div className="stat-header">
-                <span className="stat-label">Sessions</span>
-              </div>
-              <div className="stat-value">{animatedSessions.toLocaleString()}</div>
-              <div className="stat-trend positive">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>+15% vs last week</span>
-              </div>
-            </div>
-
-            <div className="stat-card-shopify">
-              <div className="stat-header">
-                <span className="stat-label">Conversion rate</span>
-              </div>
-              <div className="stat-value">{animatedConversion}%</div>
-              <div className="stat-trend negative">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>-2% vs last week</span>
-              </div>
-            </div>
-
-            <div className="stat-card-shopify">
-              <div className="stat-header">
-                <span className="stat-label">Average order value</span>
-              </div>
-              <div className="stat-value">${animatedAOV}</div>
-              <div className="stat-trend positive">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>+5% vs last week</span>
-              </div>
-            </div>
-
-            <div className="stat-card-shopify">
-              <div className="stat-header">
-                <span className="stat-label">Active subscribers</span>
+                <span className="stat-label">Subscribers</span>
               </div>
               <div className="stat-value">{animatedSubscribers.toLocaleString()}</div>
-              <div className="stat-trend positive">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                </svg>
-                <span>+23% vs last month</span>
+              <div className="stat-description text-subdued">Active subscribers</div>
+            </div>
+
+            <div className="stat-card-shopify">
+              <div className="stat-header">
+                <span className="stat-label">Plans</span>
               </div>
+              <div className="stat-value">{stats.plans}</div>
+              <div className="stat-description text-subdued">Pricing plans</div>
             </div>
           </div>
         </div>
@@ -719,42 +709,83 @@ export default function AdminDashboard() {
         <div className="recent-activity">
           <div className="section-header">
             <h3 className="text-heading">Recent activity</h3>
-            <button className="btn btn-secondary btn-sm">View all</button>
           </div>
           <div className="activity-list">
-            <div className="activity-item">
-              <div className="activity-icon success">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => {
+                const getIcon = () => {
+                  switch (activity.icon) {
+                    case 'document':
+                      return (
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                        </svg>
+                      );
+                    case 'edit':
+                      return (
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                      );
+                    case 'user':
+                      return (
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      );
+                    default:
+                      return (
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      );
+                  }
+                };
+
+                const getTimeAgo = (time) => {
+                  const now = new Date();
+                  const activityTime = new Date(time);
+                  const diffMs = now - activityTime;
+                  const diffMins = Math.floor(diffMs / 60000);
+                  const diffHours = Math.floor(diffMs / 3600000);
+                  const diffDays = Math.floor(diffMs / 86400000);
+
+                  if (diffMins < 1) return 'Just now';
+                  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+                  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+                  return activityTime.toLocaleDateString();
+                };
+
+                return (
+                  <div key={index} className="activity-item">
+                    <div className={`activity-icon ${activity.color}`}>
+                      {getIcon()}
+                    </div>
+                    <div className="activity-content">
+                      <p><strong>{activity.title}:</strong> {activity.description}</p>
+                      <span className="text-subdued">{getTimeAgo(activity.time)}</span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="empty-state" style={{ textAlign: 'center', padding: '2rem' }}>
+                <svg
+                  className="mx-auto"
+                  style={{ width: '48px', height: '48px', color: 'var(--color-text-subdued)', margin: '0 auto 1rem' }}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
+                <p style={{ color: 'var(--color-text-subdued)' }}>No recent activity yet</p>
+                <p style={{ color: 'var(--color-text-subdued)', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+                  Start by creating pages, blog posts, or adding subscribers
+                </p>
               </div>
-              <div className="activity-content">
-                <p><strong>New subscriber</strong> joined Pro plan</p>
-                <span className="text-subdued">2 minutes ago</span>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon info">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-              </div>
-              <div className="activity-content">
-                <p><strong>Page updated:</strong> /pricing</p>
-                <span className="text-subdued">1 hour ago</span>
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-icon warning">
-                <svg viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="activity-content">
-                <p><strong>API limit reached</strong> for Basic plan users</p>
-                <span className="text-subdued">3 hours ago</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

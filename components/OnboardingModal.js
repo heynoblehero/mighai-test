@@ -9,248 +9,146 @@ export default function OnboardingModal({ isOpen, onClose, currentStep = 0, onSt
   const steps = [
     {
       id: 0,
-      title: "Welcome to Your SaaS Platform! 👋",
-      description: "Let's get your application set up in just a few minutes. We'll guide you through the essential configurations to get you up and running.",
+      title: "Platform Features",
+      description: "Available tools and sections",
       icon: "🚀",
       content: (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 p-6 rounded-xl border border-emerald-200">
-            <h4 className="font-semibold text-emerald-900 mb-2">What you'll accomplish:</h4>
-            <ul className="space-y-2 text-sm text-emerald-800">
-              <li className="flex items-center">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
-                Configure your backend design for customer requests
-              </li>
-              <li className="flex items-center">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
-                Set up subscription plans and pricing
-              </li>
-              <li className="flex items-center">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
-                Create your first landing page
-              </li>
-              <li className="flex items-center">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full mr-3"></div>
-                Launch your SaaS to the world
-              </li>
-            </ul>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-gradient-to-br from-emerald-900/40 to-teal-900/40 p-4 rounded-xl text-center border border-emerald-500/20 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer group">
+            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">💳</div>
+            <div className="font-semibold text-sm text-emerald-100">Payments</div>
           </div>
-          <div className="text-center">
-            <div className="text-6xl mb-4 animate-bounce">🎯</div>
-            <p className="text-slate-600">Ready to build something amazing?</p>
+          <div className="bg-gradient-to-br from-green-900/40 to-emerald-900/40 p-4 rounded-xl text-center border border-green-500/20 hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10 transition-all cursor-pointer group">
+            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📄</div>
+            <div className="font-semibold text-sm text-green-100">Pages</div>
+          </div>
+          <div className="bg-gradient-to-br from-teal-900/40 to-cyan-900/40 p-4 rounded-xl text-center border border-teal-500/20 hover:border-teal-500/40 hover:shadow-lg hover:shadow-teal-500/10 transition-all cursor-pointer group">
+            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">📊</div>
+            <div className="font-semibold text-sm text-teal-100">Analytics</div>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-900/40 to-green-900/40 p-4 rounded-xl text-center border border-emerald-500/20 hover:border-emerald-500/40 hover:shadow-lg hover:shadow-emerald-500/10 transition-all cursor-pointer group">
+            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🧪</div>
+            <div className="font-semibold text-sm text-emerald-100">A/B Tests</div>
+          </div>
+          <div className="bg-gradient-to-br from-green-900/40 to-teal-900/40 p-4 rounded-xl text-center border border-green-500/20 hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10 transition-all cursor-pointer group">
+            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">🔥</div>
+            <div className="font-semibold text-sm text-green-100">Heatmaps</div>
+          </div>
+          <div className="bg-gradient-to-br from-cyan-900/40 to-teal-900/40 p-4 rounded-xl text-center border border-cyan-500/20 hover:border-cyan-500/40 hover:shadow-lg hover:shadow-cyan-500/10 transition-all cursor-pointer group">
+            <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">💬</div>
+            <div className="font-semibold text-sm text-cyan-100">Support</div>
           </div>
         </div>
       ),
-      actionText: "Let's Start!",
+      actionText: "Next",
       skipEnabled: false
     },
     {
       id: 1,
-      title: "Configure Your Backend Design ⚙️",
-      description: "Set up the core functionality that will handle customer requests. This is the heart of your SaaS platform.",
-      icon: "🔗",
+      title: "💳 Payments",
+      description: "Manage subscriptions",
+      icon: "💰",
       content: (
         <div className="space-y-4">
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
-            <div className="flex items-start">
-              <div className="text-2xl mr-3">💡</div>
-              <div>
-                <h5 className="font-medium text-emerald-800 mb-1">Pro Tip</h5>
-                <p className="text-sm text-emerald-700">
-                  You can connect to any API endpoint - from AI services like OpenAI to custom backends. 
-                  The template system lets you dynamically insert user data into requests.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
-              <h5 className="font-semibold text-slate-900 mb-2">📝 What you'll set:</h5>
-              <ul className="text-sm text-slate-600 space-y-1">
-                <li>• API endpoint URL</li>
-                <li>• Request method & headers</li>
-                <li>• Dynamic request template</li>
-                <li>• Customer input fields</li>
-              </ul>
-            </div>
-            <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
-              <h5 className="font-semibold text-slate-900 mb-2">🎯 Popular Examples:</h5>
-              <ul className="text-sm text-slate-600 space-y-1">
-                <li>• AI text generation</li>
-                <li>• Image processing</li>
-                <li>• Data analysis</li>
-                <li>• Custom calculations</li>
-              </ul>
-            </div>
+          <div className="text-base" style={{ color: 'var(--color-text-secondary)' }}>Create and manage subscription plans with ease.</div>
+          <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/30 p-4 rounded-xl">
+            <div className="text-xs font-semibold text-emerald-400 mb-2">Quick Access</div>
+            <div className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Admin → Plans</div>
           </div>
         </div>
       ),
-      actionText: "Configure Backend Design",
-      actionLink: "/admin/backend-design",
+      actionText: "Next",
       skipEnabled: true
     },
     {
       id: 2,
-      title: "Create Your Subscription Plans 💳",
-      description: "Define how customers will pay for your service. Set up different tiers with API limits and pricing.",
-      icon: "💰",
+      title: "📄 Pages & Blog",
+      description: "Create content",
+      icon: "🎨",
       content: (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 p-4 rounded-xl text-center">
-              <div className="text-2xl mb-2">🆓</div>
-              <h5 className="font-semibold text-emerald-800 mb-1">Free Tier</h5>
-              <p className="text-xs text-emerald-600">Perfect for getting started</p>
-            </div>
-            <div className="bg-gradient-to-br from-emerald-100 to-emerald-200 border border-emerald-300 p-4 rounded-xl text-center">
-              <div className="text-2xl mb-2">⭐</div>
-              <h5 className="font-semibold text-emerald-800 mb-1">Pro Plan</h5>
-              <p className="text-xs text-emerald-600">For regular users</p>
-            </div>
-            <div className="bg-gradient-to-br from-emerald-200 to-emerald-300 border border-emerald-400 p-4 rounded-xl text-center">
-              <div className="text-2xl mb-2">💎</div>
-              <h5 className="font-semibold text-emerald-800 mb-1">Enterprise</h5>
-              <p className="text-xs text-emerald-600">Unlimited access</p>
-            </div>
-          </div>
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
-            <h5 className="font-medium text-emerald-800 mb-2">💡 Pricing Strategy Tips:</h5>
-            <ul className="text-sm text-emerald-700 space-y-1">
-              <li>• Start with a generous free tier to attract users</li>
-              <li>• Set clear usage limits (API calls, features)</li>
-              <li>• Price competitively but value your service</li>
-              <li>• You can always adjust prices later</li>
-            </ul>
+          <div className="text-base" style={{ color: 'var(--color-text-secondary)' }}>Build beautiful pages and publish engaging blog posts.</div>
+          <div className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/30 p-4 rounded-xl">
+            <div className="text-xs font-semibold text-green-400 mb-2">Quick Access</div>
+            <div className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Admin → Pages, Blog</div>
           </div>
         </div>
       ),
-      actionText: "Set Up Plans",
-      actionLink: "/admin/plans",
+      actionText: "Next",
       skipEnabled: true
     },
     {
       id: 3,
-      title: "Build Your Landing Page 📄",
-      description: "Create a compelling homepage that showcases your SaaS and converts visitors into customers.",
-      icon: "🎨",
+      title: "📊 Analytics",
+      description: "Track metrics",
+      icon: "📈",
       content: (
         <div className="space-y-4">
-          <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 p-6 rounded-xl border border-emerald-200">
-            <h5 className="font-semibold text-emerald-800 mb-3">🎨 Page Builder Features:</h5>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <h6 className="font-medium text-emerald-700 mb-1">Design Elements:</h6>
-                <ul className="text-emerald-600 space-y-1">
-                  <li>• Hero sections</li>
-                  <li>• Feature showcases</li>
-                  <li>• Testimonials</li>
-                  <li>• Pricing tables</li>
-                </ul>
-              </div>
-              <div>
-                <h6 className="font-medium text-emerald-700 mb-1">Advanced Features:</h6>
-                <ul className="text-emerald-600 space-y-1">
-                  <li>• A/B testing</li>
-                  <li>• Analytics tracking</li>
-                  <li>• SEO optimization</li>
-                  <li>• Mobile responsive</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="text-4xl mb-3">✨</div>
-            <p className="text-slate-600 text-sm">
-              No coding required! Use our visual editor to create beautiful pages.
-            </p>
+          <div className="text-base" style={{ color: 'var(--color-text-secondary)' }}>Track performance with analytics, heatmaps, and A/B tests.</div>
+          <div className="bg-gradient-to-r from-teal-900/30 to-cyan-900/30 border border-teal-500/30 p-4 rounded-xl">
+            <div className="text-xs font-semibold text-teal-400 mb-2">Quick Access</div>
+            <div className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Admin → Analytics, Heatmaps, A/B Tests</div>
           </div>
         </div>
       ),
-      actionText: "Create Page",
-      actionLink: "/admin/pages",
+      actionText: "Next",
       skipEnabled: true
     },
     {
       id: 4,
-      title: "Test Your Setup 🧪",
-      description: "Make sure everything is working perfectly before you launch. Test your API, payment flow, and user experience.",
-      icon: "✅",
+      title: "💬 Support",
+      description: "Customer support",
+      icon: "📧",
       content: (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
-              <h5 className="font-semibold text-emerald-800 mb-2">✅ Pre-Launch Checklist:</h5>
-              <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• Backend design responds correctly</li>
-                <li>• Payment processing works</li>
-                <li>• Landing page looks great</li>
-                <li>• User dashboard functions</li>
-              </ul>
-            </div>
-            <div className="bg-emerald-100 border border-emerald-300 p-4 rounded-xl">
-              <h5 className="font-semibold text-emerald-800 mb-2">🔧 Quick Tests:</h5>
-              <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• Submit a test API request</li>
-                <li>• Try the signup flow</li>
-                <li>• Check mobile responsiveness</li>
-                <li>• Verify error handling</li>
-              </ul>
-            </div>
-          </div>
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center">
-            <div className="text-3xl mb-2">🚀</div>
-            <h5 className="font-medium text-slate-800 mb-1">Ready to Launch?</h5>
-            <p className="text-sm text-slate-600">
-              Once testing is complete, you'll be ready to welcome your first customers!
-            </p>
+          <div className="text-base" style={{ color: 'var(--color-text-secondary)' }}>Manage support tickets and send emails to customers.</div>
+          <div className="bg-gradient-to-r from-cyan-900/30 to-teal-900/30 border border-cyan-500/30 p-4 rounded-xl">
+            <div className="text-xs font-semibold text-cyan-400 mb-2">Quick Access</div>
+            <div className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Admin → Support, Email</div>
           </div>
         </div>
       ),
-      actionText: "Run Tests",
-      actionLink: "/admin",
+      actionText: "Next",
       skipEnabled: true
     },
     {
       id: 5,
-      title: "🎉 Congratulations! You're Launch Ready!",
-      description: "Your SaaS platform is fully configured and ready to serve customers. Welcome to the world of software entrepreneurship!",
-      icon: "🚀",
+      title: "⚙️ More",
+      description: "Additional features",
+      icon: "🔧",
       content: (
         <div className="space-y-4">
-          <div className="text-center animate-bounce-in">
-            <div className="text-8xl mb-4">🎉</div>
-            <h4 className="text-2xl font-bold text-emerald-600 mb-2">Mission Accomplished!</h4>
-            <p className="text-slate-600 mb-6">Your SaaS is now live and ready for customers</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl">
-              <h5 className="font-semibold text-emerald-800 mb-2">📊 What's Next:</h5>
-              <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• Monitor user analytics</li>
-                <li>• Gather customer feedback</li>
-                <li>• Optimize conversion rates</li>
-                <li>• Scale your infrastructure</li>
-              </ul>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-600/30 p-3 rounded-xl text-center hover:border-slate-500/50 hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">⚙️</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Backend</div>
             </div>
-            <div className="bg-emerald-100 border border-emerald-300 p-4 rounded-xl">
-              <h5 className="font-semibold text-emerald-800 mb-2">🎯 Pro Tips:</h5>
-              <ul className="text-sm text-emerald-700 space-y-1">
-                <li>• Engage with early users</li>
-                <li>• Iterate based on feedback</li>
-                <li>• Build a community</li>
-                <li>• Keep innovating!</li>
-              </ul>
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-600/30 p-3 rounded-xl text-center hover:border-slate-500/50 hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">👥</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Users</div>
+            </div>
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-600/30 p-3 rounded-xl text-center hover:border-slate-500/50 hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">🔐</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Auth</div>
+            </div>
+            <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-600/30 p-3 rounded-xl text-center hover:border-slate-500/50 hover:shadow-md transition-all">
+              <div className="text-2xl mb-1">🔄</div>
+              <div className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Updates</div>
             </div>
           </div>
-          <div className="bg-gradient-to-r from-emerald-100 to-emerald-200 border border-emerald-200 p-6 rounded-xl text-center">
-            <h5 className="font-semibold text-slate-800 mb-2">🌟 You're now officially a SaaS founder!</h5>
-            <p className="text-sm text-slate-600">
-              We can't wait to see what amazing solutions you'll build for your customers.
-            </p>
+          <div className="bg-gradient-to-r from-emerald-900/40 to-teal-900/40 border border-[#00d084]/40 p-5 rounded-xl relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-teal-500/10"></div>
+            <div className="relative">
+              <div className="text-center text-lg font-bold text-[#00d084] flex items-center justify-center gap-2">
+                <span>You're all set!</span>
+                <span className="text-2xl">🚀</span>
+              </div>
+              <div className="text-center text-sm text-emerald-300 mt-1">Ready to explore the platform</div>
+            </div>
           </div>
         </div>
       ),
-      actionText: "Go to Dashboard",
+      actionText: "Done",
       actionLink: "/admin",
       skipEnabled: false
     }
@@ -260,19 +158,12 @@ export default function OnboardingModal({ isOpen, onClose, currentStep = 0, onSt
 
   const handleNext = async () => {
     setIsAnimating(true);
-    
-    // Mark current step as completed
-    if (onStepComplete) {
-      await onStepComplete(activeStep);
-    }
-
-    // Navigate to action link if provided
+    if (onStepComplete) await onStepComplete(activeStep);
     if (currentStepData.actionLink) {
       router.push(currentStepData.actionLink);
       onClose();
       return;
     }
-
     setTimeout(() => {
       if (activeStep < steps.length - 1) {
         setActiveStep(activeStep + 1);
@@ -280,108 +171,93 @@ export default function OnboardingModal({ isOpen, onClose, currentStep = 0, onSt
         onClose();
       }
       setIsAnimating(false);
-    }, 300);
+    }, 200);
   };
 
   const handleSkip = () => {
-    if (activeStep < steps.length - 1) {
-      setActiveStep(activeStep + 1);
-    } else {
-      onClose();
-    }
-  };
-
-  const handlePrevious = () => {
-    if (activeStep > 0) {
-      setActiveStep(activeStep - 1);
-    }
+    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900 rounded-xl shadow-2xl border border-slate-700 max-w-3xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-8 py-6 text-white">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="text-4xl">{currentStepData.icon}</div>
-              <div>
-                <h2 className="text-2xl font-bold">{currentStepData.title}</h2>
-                <p className="text-emerald-100 opacity-90">{currentStepData.description}</p>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+      <div className="rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform transition-all" style={{ background: 'var(--color-surface)' }}>
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-700 px-6 py-5 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDEwIEwgNDAgMTAgTSAxMCAwIEwgMTAgNDAgTSAwIDIwIEwgNDAgMjAgTSAyMCAwIEwgMjAgNDAgTSAwIDMwIEwgNDAgMzAgTSAzMCAwIEwgMzAgNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-50"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl shadow-lg border border-white/20">
+                  {currentStepData.icon}
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg tracking-tight">{currentStepData.title}</h3>
+                  <p className="text-sm text-emerald-100 mt-0.5">{currentStepData.description}</p>
+                </div>
               </div>
+              <button
+                onClick={onClose}
+                className="text-white/70 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
 
-          {/* Progress Indicator */}
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-emerald-100">Step {activeStep + 1} of {steps.length}</span>
-              <span className="text-sm text-emerald-100">{Math.round(((activeStep + 1) / steps.length) * 100)}% Complete</span>
-            </div>
-            <div className="w-full bg-emerald-500/30 rounded-full h-2">
-              <div 
-                className="bg-white rounded-full h-2 transition-all duration-500 ease-out"
-                style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
-              />
+            {/* Progress bar */}
+            <div className="flex gap-1.5">
+              {steps.map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+                    i <= activeStep ? 'bg-[#00d084] shadow-lg shadow-[#00d084]/30' : 'bg-white/20'
+                  }`}
+                />
+              ))}
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className={`p-6 transition-all duration-300 ${isAnimating ? 'opacity-0 transform translate-y-4' : 'opacity-100 transform translate-y-0'}`}>
+        <div className={`p-6 min-h-[200px] transition-all duration-300 ${
+          isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+        }`} style={{ background: 'var(--color-surface-neutral)' }}>
           {currentStepData.content}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-700 bg-slate-800">
-          <div className="flex items-center justify-between">
-            <div className="flex space-x-2">
-              {steps.map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-2 h-2 rounded-full transition-colors duration-300 ${
-                    index <= activeStep ? 'bg-emerald-500' : 'bg-slate-600'
-                  }`}
-                />
-              ))}
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              {activeStep > 0 && (
-                <button
-                  onClick={handlePrevious}
-                  className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
-                >
-                  ← Previous
-                </button>
-              )}
-              
-              {currentStepData.skipEnabled && activeStep < steps.length - 1 && (
-                <button
-                  onClick={handleSkip}
-                  className="px-4 py-2 text-slate-400 hover:text-slate-300 transition-colors"
-                >
-                  Skip
-                </button>
-              )}
-              
+        <div className="px-6 py-4 flex justify-between items-center border-t" style={{
+          background: 'var(--color-surface-subdued)',
+          borderColor: 'var(--color-border)'
+        }}>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{activeStep + 1}</span>
+            <span className="text-sm" style={{ color: 'var(--color-text-subdued)' }}>/</span>
+            <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{steps.length}</span>
+          </div>
+          <div className="flex gap-3">
+            {currentStepData.skipEnabled && (
               <button
-                onClick={handleNext}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                onClick={handleSkip}
+                className="px-4 py-2 text-sm hover:bg-white/5 rounded-lg transition-all font-medium"
+                style={{ color: 'var(--color-text-secondary)' }}
               >
-                {currentStepData.actionText} →
+                Skip all
               </button>
-            </div>
+            )}
+            <button
+              onClick={handleNext}
+              className="px-6 py-2 text-white text-sm rounded-lg shadow-md hover:shadow-lg transition-all font-semibold"
+              style={{
+                background: 'linear-gradient(135deg, #00d084, #059669)',
+                boxShadow: '0 0 20px rgba(0, 208, 132, 0.3)'
+              }}
+            >
+              {currentStepData.actionText}
+            </button>
           </div>
         </div>
       </div>

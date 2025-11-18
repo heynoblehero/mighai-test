@@ -153,9 +153,46 @@ db.serialize(() => {
     FOREIGN KEY (user_id) REFERENCES users (id)
   )`);
 
+  // Storage buckets table
+  db.run(`CREATE TABLE IF NOT EXISTS storage_buckets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    slug TEXT NOT NULL UNIQUE,
+    description TEXT,
+    allowed_file_types TEXT,
+    max_file_size INTEGER DEFAULT 10485760,
+    access_level TEXT DEFAULT 'private',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  // Storage files table
+  db.run(`CREATE TABLE IF NOT EXISTS storage_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bucket_id INTEGER NOT NULL,
+    original_name TEXT NOT NULL,
+    stored_name TEXT NOT NULL UNIQUE,
+    file_path TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    file_size INTEGER NOT NULL,
+    uploaded_by TEXT,
+    access_level TEXT DEFAULT 'private',
+    metadata TEXT,
+    virus_scanned BOOLEAN DEFAULT 0,
+    scan_status TEXT DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (bucket_id) REFERENCES storage_buckets(id) ON DELETE CASCADE
+  )`);
+
+  // Create indexes for storage tables
+  db.run(`CREATE INDEX IF NOT EXISTS idx_files_bucket ON storage_files(bucket_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_files_uploaded_by ON storage_files(uploaded_by)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_buckets_slug ON storage_buckets(slug)`);
+
   // Create default admin user if not exists
   const defaultPassword = bcrypt.hashSync('admin123', 10);
-  db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
+  db.run(`INSERT OR IGNORE INTO users (username, email, password, role)
           VALUES ('admin', 'admin@example.com', ?, 'admin')`, [defaultPassword]);
 
   // Create test subscriber users if not exists
@@ -787,10 +824,12 @@ db.serialize(() => {
     attempt_type TEXT NOT NULL CHECK (attempt_type IN ('admin', 'customer', 'otp')),
     success BOOLEAN DEFAULT 0,
     failure_reason TEXT,
-    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_email_attempted (email, attempted_at),
-    INDEX idx_ip_attempted (ip_address, attempted_at)
+    attempted_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Create indexes for login_attempts table
+  db.run(`CREATE INDEX IF NOT EXISTS idx_email_attempted ON login_attempts (email, attempted_at)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_ip_attempted ON login_attempts (ip_address, attempted_at)`);
 
   // Security Events Table - For Audit Logging
   db.run(`CREATE TABLE IF NOT EXISTS security_events (
@@ -804,10 +843,12 @@ db.serialize(() => {
     device_fingerprint TEXT,
     event_data TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id),
-    INDEX idx_event_type_created (event_type, created_at),
-    INDEX idx_severity_created (severity, created_at)
+    FOREIGN KEY (user_id) REFERENCES users (id)
   )`);
+
+  // Create indexes for security_events table
+  db.run(`CREATE INDEX IF NOT EXISTS idx_event_type_created ON security_events (event_type, created_at)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_severity_created ON security_events (severity, created_at)`);
 
   // Add account lockout columns to users table
   db.run(`ALTER TABLE users ADD COLUMN failed_login_attempts INTEGER DEFAULT 0`, (err) => {
